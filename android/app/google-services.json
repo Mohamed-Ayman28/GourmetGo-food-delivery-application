@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "698772848965",
+    "project_id": "gourmetgo-29bbf",
+    "storage_bucket": "gourmetgo-29bbf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:698772848965:android:99ed86dfe9dcf733a9fe2c",
+        "android_client_info": {
+          "package_name": "com.example.gourmet_go"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "698772848965-9679lsp73spjnquk5t1rroghi4or4cre.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC75R9ie6COPVHrI96VMI1Qs4Cou-jIUgo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "698772848965-9679lsp73spjnquk5t1rroghi4or4cre.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
