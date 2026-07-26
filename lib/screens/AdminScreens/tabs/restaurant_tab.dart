@@ -27,6 +27,60 @@ class _RestaurantTabState extends State<RestaurantTab> {
   final _lngController = TextEditingController(text: '-73.991270');
   bool _isOpen = true;
   bool _isLoading = false;
+  bool _isDetectingLocation = false;
+
+  Future<void> _detectRestaurantLocation() async {
+    setState(() => _isDetectingLocation = true);
+    try {
+      final loc = LocationService();
+      final ok = await loc.promptLocationPermissionDialog(context);
+      if (!ok) {
+        if (!mounted) return;
+        setState(() => _isDetectingLocation = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location permission is required to detect GPS.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      final pos = await loc.getCurrentPosition();
+      final addr = await loc.reverseGeocode(pos.latitude, pos.longitude);
+
+      setState(() {
+        if (addr.fullAddress.isNotEmpty) {
+          _addressController.text = addr.fullAddress;
+        }
+        _latController.text = pos.latitude.toStringAsFixed(6);
+        _lngController.text = pos.longitude.toStringAsFixed(6);
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(addr.fullAddress.isNotEmpty
+              ? 'GPS Detected: ${addr.fullAddress}'
+              : 'GPS Detected: ${pos.latitude}, ${pos.longitude}'),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to get current location: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isDetectingLocation = false);
+    }
+  }
 
   @override
   void initState() {
@@ -281,7 +335,42 @@ class _RestaurantTabState extends State<RestaurantTab> {
 
                     const SizedBox(height: 16),
                     // ── Restaurant Location Section ──
-                    const Text('Restaurant Location', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Restaurant Location',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary)),
+                        TextButton.icon(
+                          onPressed: _isDetectingLocation
+                              ? null
+                              : _detectRestaurantLocation,
+                          icon: _isDetectingLocation
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.primary))
+                              : const Icon(Icons.my_location_rounded,
+                                  color: AppColors.primary, size: 18),
+                          label: Text(
+                              _isDetectingLocation
+                                  ? 'Detecting...'
+                                  : 'Detect GPS',
+                              style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600)),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 0),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     AdminTextField(
                       controller: _addressController,

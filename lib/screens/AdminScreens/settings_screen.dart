@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/menu_admin/data/datasources/menu_seeder.dart';
 import '../login_screen.dart';
+import '../../consts/appColors.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,165 +13,104 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final _staffEmailController = TextEditingController();
-  final _staffPasswordController = TextEditingController();
-  
-  final _driverEmailController = TextEditingController();
-  final _driverPasswordController = TextEditingController();
-
-  bool _isLoadingStaff = false;
-  bool _isLoadingDriver = false;
+  bool _pushNotifications = true;
+  bool _darkMode = false;
+  bool _isSeeding = false;
 
   @override
-  void dispose() {
-    _staffEmailController.dispose();
-    _staffPasswordController.dispose();
-    _driverEmailController.dispose();
-    _driverPasswordController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadPreferences();
   }
 
-  Future<void> _createUser(String email, String password, String role) async {
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
-      return;
-    }
-
-    if (role == 'staff') {
-      setState(() => _isLoadingStaff = true);
-    } else {
-      setState(() => _isLoadingDriver = true);
-    }
-
-    try {
-      // NOTE: Using createUserWithEmailAndPassword on the client side 
-      // will sign in the newly created user and sign out the admin.
-      // In production, consider using Firebase Cloud Functions to create users without altering the auth state.
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      if (credential.user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(credential.user!.uid).set({
-          'email': email,
-          'role': role,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$role user created successfully!')),
-        );
-
-        if (role == 'staff') {
-          _staffEmailController.clear();
-          _staffPasswordController.clear();
-        } else {
-          _driverEmailController.clear();
-          _driverPasswordController.clear();
-        }
-      }
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Authentication error occurred')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
-      if (role == 'staff') {
-        setState(() => _isLoadingStaff = false);
-      } else {
-        setState(() => _isLoadingDriver = false);
-      }
-    }
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _pushNotifications = prefs.getBool('admin_push_notifications') ?? true;
+      _darkMode = prefs.getBool('admin_dark_mode') ?? false;
+    });
   }
 
-  Widget _buildAddUserSection({
-    required String title,
-    required String role,
-    required TextEditingController emailController,
-    required TextEditingController passwordController,
-    required bool isLoading,
-    required IconData icon,
-  }) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: const Color(0xffA93500)),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xffA93500),
-                  ),
+  Future<void> _togglePushNotifications(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('admin_push_notifications', value);
+    setState(() => _pushNotifications = value);
+  }
+
+  Future<void> _toggleDarkMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('admin_dark_mode', value);
+    setState(() => _darkMode = value);
+  }
+
+  void _showLogOutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        elevation: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email),
+                child: const Icon(Icons.logout_rounded, color: AppColors.error, size: 32),
               ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock),
+              const SizedBox(height: 20),
+              const Text('Log Out', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              const SizedBox(height: 12),
+              const Text(
+                'Are you sure you want to log out from the Admin Portal?',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
               ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 45,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xffA93500),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: const BorderSide(color: AppColors.border),
+                      ),
+                      child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                    ),
                   ),
-                ),
-                onPressed: isLoading
-                    ? null
-                    : () => _createUser(
-                          emailController.text.trim(),
-                          passwordController.text.trim(),
-                          role,
-                        ),
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text('Add $role'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await FirebaseAuth.instance.signOut();
+                        if (!mounted) return;
+                        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (Route<dynamic> route) => false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Logged out successfully'), behavior: SnackBarBehavior.floating),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -179,90 +119,103 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Admin Settings'),
+        title: const Text('Admin Settings', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xffA93500),
-        elevation: 1,
+        foregroundColor: AppColors.primary,
+        elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (!mounted) return;
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (route) => false,
-              );
-            },
-          ),
+          IconButton(icon: const Icon(Icons.logout_rounded), onPressed: _showLogOutDialog),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Database Management',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 45,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            // App Preferences
+            const Text('App Preferences', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 2))]),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    title: const Text('Push Notifications', style: TextStyle(fontWeight: FontWeight.w500)),
+                    subtitle: const Text('Receive alerts for new orders'),
+                    secondary: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.notifications_active_outlined, color: AppColors.primary)),
+                    activeColor: AppColors.primary,
+                    value: _pushNotifications,
+                    onChanged: _togglePushNotifications,
                   ),
-                ),
-                onPressed: () async {
-                  try {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seeding database...')));
-                    await MenuSeeder.clearAndReseedMenu();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Database seeded successfully!')));
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                  }
-                },
-                icon: const Icon(Icons.cloud_upload),
-                label: const Text('Re-seed Menu Database'),
+                  Divider(height: 1, color: Colors.grey.shade100),
+                  SwitchListTile(
+                    title: const Text('Dark Mode', style: TextStyle(fontWeight: FontWeight.w500)),
+                    subtitle: const Text('Switch app theme'),
+                    secondary: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.dark_mode_outlined, color: AppColors.primary)),
+                    activeColor: AppColors.primary,
+                    value: _darkMode,
+                    onChanged: _toggleDarkMode,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 32),
-            const Text(
-              'User Management',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+
+            // Advanced Actions
+            const Text('Advanced Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 2))]),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.cloud_upload_outlined, color: Colors.orange)),
+                    title: const Text('Re-seed Menu Database', style: TextStyle(fontWeight: FontWeight.w500)),
+                    subtitle: const Text('Reset menu items to default'),
+                    trailing: _isSeeding ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.orange)) : const Icon(Icons.chevron_right, color: AppColors.textLight),
+                    onTap: _isSeeding
+                        ? null
+                        : () async {
+                            setState(() => _isSeeding = true);
+                            try {
+                              await MenuSeeder.clearAndReseedMenu();
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Database seeded successfully!'), backgroundColor: AppColors.success));
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
+                            } finally {
+                              setState(() => _isSeeding = false);
+                            }
+                          },
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            _buildAddUserSection(
-              title: 'Add Staff User',
-              role: 'staff',
-              emailController: _staffEmailController,
-              passwordController: _staffPasswordController,
-              isLoading: _isLoadingStaff,
-              icon: Icons.admin_panel_settings,
+            
+            const SizedBox(height: 48),
+            // Log Out Button
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: _showLogOutDialog,
+                icon: const Icon(Icons.logout_rounded, size: 20),
+                label: const Text('Log Out', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: BorderSide(color: AppColors.error.withValues(alpha: 0.3), width: 1.5),
+                  backgroundColor: AppColors.error.withValues(alpha: 0.05),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
             ),
-            const SizedBox(height: 24),
-            _buildAddUserSection(
-              title: 'Add Driver User',
-              role: 'driver',
-              emailController: _driverEmailController,
-              passwordController: _driverPasswordController,
-              isLoading: _isLoadingDriver,
-              icon: Icons.delivery_dining,
-            ),
+            const SizedBox(height: 32),
+            const Center(
+              child: Text('GourmetGo Admin Portal v1.0.0', style: TextStyle(color: AppColors.textLight, fontSize: 12)),
+            )
           ],
         ),
       ),

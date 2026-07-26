@@ -661,7 +661,7 @@ class _TalabatTrackingViewState extends State<_TalabatTrackingView>
 
   Widget _buildBottomRiderSheet(OrderEntity order) {
     final hasDriver = order.driverName != null && order.driverName!.isNotEmpty;
-    final driverName = hasDriver ? order.driverName! : 'Ahmed Hassan';
+    final driverName = hasDriver ? order.driverName! : 'Driver';
 
     return Container(
       decoration: const BoxDecoration(
@@ -694,108 +694,107 @@ class _TalabatTrackingViewState extends State<_TalabatTrackingView>
             ),
             const SizedBox(height: 14),
 
-            // Rider Info Row
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundImage: (order.driverPhotoUrl != null &&
-                          order.driverPhotoUrl!.isNotEmpty)
-                      ? NetworkImage(order.driverPhotoUrl!)
-                      : const NetworkImage(
-                          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        driverName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Motorcycle • Honda CB 150',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      Text(
-                        'ABC 1234',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Orange Call Button
-                GestureDetector(
-                  onTap: () => _callPhone(context, order.driverPhone),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.deepOrange.shade50,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.phone,
-                        color: Colors.deepOrange, size: 20),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            // Rider Status Banner
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
+            // Only show Rider details when out for delivery
+            if (order.status == OrderStatus.outForDelivery && hasDriver) ...[
+              // Rider Info Row
+              Row(
                 children: [
-                  const Icon(Icons.two_wheeler,
-                      color: AppColors.textPrimary, size: 24),
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundImage: (order.driverPhotoUrl != null &&
+                            order.driverPhotoUrl!.isNotEmpty)
+                        ? NetworkImage(order.driverPhotoUrl!)
+                        : const NetworkImage(
+                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Your rider is on the way',
-                          style: TextStyle(
-                            fontSize: 14,
+                        Text(
+                          driverName,
+                          style: const TextStyle(
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        Text(
-                          'Please be ready to receive your order',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
+                        if (order.driverPhone != null &&
+                            order.driverPhone!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            order.driverPhone!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
+
+                  // Orange Call Button
+                  if (order.driverPhone != null &&
+                      order.driverPhone!.isNotEmpty)
+                    GestureDetector(
+                      onTap: () => _callPhone(context, order.driverPhone),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.deepOrange.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.phone,
+                            color: Colors.deepOrange, size: 20),
+                      ),
+                    ),
                 ],
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 14),
+
+              // Rider Status Banner
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.two_wheeler,
+                        color: AppColors.textPrimary, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Your rider is on the way',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            'Please be ready to receive your order',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Accordion Button
             SizedBox(

@@ -1093,79 +1093,132 @@ class _StaffOrderCard extends StatelessWidget {
       builder: (dialogCtx) {
         return BlocProvider.value(
           value: cubit,
-          child: AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Assign Available Driver'),
-            content: BlocBuilder<StaffOrdersCubit, StaffOrdersState>(
-              builder: (ctx, state) {
-                if (state is StaffOrdersLoaded) {
-                  if (state.isLoadingDrivers) {
-                    return const SizedBox(
-                      height: 100,
-                      child: Center(
-                        child:
-                            CircularProgressIndicator(color: AppColors.primary),
-                      ),
-                    );
-                  }
-
-                  final drivers = state.availableDrivers;
-                  if (drivers.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Text(
-                        'No available drivers found at the moment (drivers may be busy or offline).',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
-                    );
-                  }
-
-                  return SizedBox(
-                    width: double.maxFinite,
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: drivers.length,
-                      separatorBuilder: (_, _) => const Divider(),
-                      itemBuilder: (context, index) {
-                        final driver = drivers[index];
-                        return ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: AppColors.primary,
-                            child: Icon(Icons.person, color: Colors.white),
-                          ),
-                          title: Text(
-                            driver['name'] ?? 'Driver',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(driver['phone'] ?? ''),
-                          trailing: ElevatedButton(
-                            onPressed: () {
-                              cubit.assignDriver(order.id, driver['id']);
-                              Navigator.pop(dialogCtx);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+          child: Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: Colors.white,
+            elevation: 10,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.delivery_dining_rounded, color: AppColors.primary, size: 36),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Assign Available Driver',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  BlocBuilder<StaffOrdersCubit, StaffOrdersState>(
+                    builder: (ctx, state) {
+                      if (state is StaffOrdersLoaded) {
+                        if (state.isLoadingDrivers) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 30),
+                            child: Center(
+                              child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 3),
                             ),
-                            child: const Text('Assign'),
+                          );
+                        }
+
+                        final drivers = state.availableDrivers;
+                        if (drivers.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Text(
+                              'No available drivers found at the moment (drivers may be busy or offline).',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppColors.textSecondary, height: 1.5, fontSize: 14),
+                            ),
+                          );
+                        }
+
+                        return ConstrainedBox(
+                          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.4),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: drivers.length,
+                            separatorBuilder: (_, _) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final driver = drivers[index];
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  leading: CircleAvatar(
+                                    radius: 22,
+                                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                                    child: const Icon(Icons.person, color: AppColors.primary, size: 20),
+                                  ),
+                                  title: Text(
+                                    driver['name'] ?? 'Driver',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                                  ),
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      driver['phone'] ?? '', 
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                    ),
+                                  ),
+                                  trailing: ElevatedButton(
+                                    onPressed: () {
+                                      cubit.assignDriver(order.id, driver['id']);
+                                      Navigator.pop(dialogCtx);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    ),
+                                    child: const Text('Assign', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         );
-                      },
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(dialogCtx),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                      ),
+                      child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 15)),
                     ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('Cancel'),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
