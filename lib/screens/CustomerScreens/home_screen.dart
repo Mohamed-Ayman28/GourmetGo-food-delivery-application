@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gourmet_go/helper/api_helper.dart';
 import 'package:gourmet_go/models/food_item.dart';
 import 'package:gourmet_go/screens/CustomerScreens/CategoriesScreens/category_food_screen.dart';
 import 'package:gourmet_go/screens/CustomerScreens/profle_screen.dart';
 import 'package:gourmet_go/screens/CustomerScreens/search_screen.dart';
 import 'package:gourmet_go/screens/CustomerScreens/cart_screen.dart';
+import 'package:gourmet_go/screens/CustomerScreens/customer_orders_screen.dart';
+import 'package:gourmet_go/screens/CustomerScreens/delivery_addresses_screen.dart';
 import 'package:gourmet_go/helper/cart_manager.dart';
 import 'package:gourmet_go/consts/appColors.dart';
 import 'package:gourmet_go/widgets/categroies.dart';
@@ -12,6 +15,10 @@ import 'package:gourmet_go/widgets/custom_bottom_nav_bar.dart';
 import 'package:gourmet_go/widgets/food_item_card.dart';
 import 'package:gourmet_go/widgets/search_bar.dart';
 import 'package:gourmet_go/widgets/skeleton_card.dart';
+import 'package:gourmet_go/features/order_tracking/presentation/pages/staff_order_manager_screen.dart';
+import 'package:gourmet_go/features/order_tracking/presentation/pages/driver_dashboard_screen.dart';
+import 'package:gourmet_go/features/order_tracking/presentation/pages/customer_tracking_screen.dart';
+import 'package:gourmet_go/screens/AdminScreens/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     CategoryItem(icon: Icons.local_cafe, title: "Drinks"),
     CategoryItem(icon: Icons.set_meal_rounded, title: "Steaks"),
     CategoryItem(icon: Icons.cake, title: "Desserts"),
+    CategoryItem(icon: Icons.set_meal, title: "Fried Chicken"),
   ];
 
   /// Maps each category title to its API category name and emoji.
@@ -43,12 +51,26 @@ class _HomeScreenState extends State<HomeScreen> {
     'Drinks': {'endpoint': 'Drinks', 'emoji': '☕'},
     'Steaks': {'endpoint': 'Steaks', 'emoji': '🥩'},
     'Desserts': {'endpoint': 'Desserts', 'emoji': '🍰'},
+    'Fried Chicken': {'endpoint': 'Fried Chicken', 'emoji': '🍗'},
   };
+
+  String _currentDeliverAddress = "Current GPS Location";
 
   @override
   void initState() {
     super.initState();
     _fetchTrendyFoods();
+    _loadSavedDeliverAddress();
+  }
+
+  Future<void> _loadSavedDeliverAddress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('user_delivery_address');
+    if (saved != null && saved.isNotEmpty && mounted) {
+      setState(() {
+        _currentDeliverAddress = saved;
+      });
+    }
   }
 
   Future<void> _fetchTrendyFoods() async {
@@ -224,17 +246,31 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 2,
             color: Colors.grey.shade300,
           ),
-          const ListTile(
-            leading: Icon(
+          ListTile(
+            leading: const Icon(
               Icons.location_on_outlined,
               size: 30,
               color: Color(0xffA93500),
             ),
-            title: Text(
+            title: const Text(
               "Deliver To",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
-            subtitle: Text("Central Park, NY"),
+            subtitle: Text(
+              _currentDeliverAddress,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DeliveryAddressesScreen(),
+                ),
+              );
+              _loadSavedDeliverAddress();
+            },
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -303,12 +339,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 1:
         return const SearchScreen();
       case 2:
-        return const Center(
-          child: Text(
-            "Orders Screen",
-            style: TextStyle(fontSize: 18, color: Color(0xffA93500)),
-          ),
-        );
+        return const CustomerOrdersScreen();
       case 3:
         return const ProfileScreen();
       default:
@@ -332,12 +363,14 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.shopping_cart_outlined),
           ),
         ],
-        leading: IconButton(
-          color: const Color(0xffA93500),
-          onPressed: () {
-            // TODO list menu items
-          },
-          icon: const Icon(Icons.menu),
+        leading: Builder(
+          builder: (drawerCtx) => IconButton(
+            color: const Color(0xffA93500),
+            onPressed: () {
+              Scaffold.of(drawerCtx).openDrawer();
+            },
+            icon: const Icon(Icons.menu),
+          ),
         ),
         title: const Text(
           "Gourmet Go",
@@ -345,6 +378,64 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Color(0xffA93500),
             fontWeight: FontWeight.bold,
           ),
+        ),
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(
+                color: Color(0xffA93500),
+              ),
+              accountName: const Text(
+                'GourmetGo App',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              accountEmail: const Text('Production Delivery Portal'),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(6.0),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.restaurant_rounded,
+                      color: Color(0xffA93500),
+                      size: 32,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home_outlined, color: AppColors.primary),
+              title: const Text('Home'),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() => _selectedIndex = 0);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.receipt_long_outlined, color: AppColors.primary),
+              title: const Text('My Orders'),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() => _selectedIndex = 2);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.location_on_outlined, color: AppColors.primary),
+              title: const Text('Delivery Addresses'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DeliveryAddressesScreen()),
+                );
+              },
+            ),
+          ],
         ),
       ),
       body: _buildTabBody(),

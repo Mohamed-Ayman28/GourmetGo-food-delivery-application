@@ -200,6 +200,10 @@ class FoodItem {
 
     // Default fallback using stable lock on loremflickr
     if (fallbackUrl.contains('loremflickr.com')) {
+      if (fallbackUrl.contains('lock=')) {
+        return fallbackUrl;
+      }
+
       int lock = 0;
       for (int i = 0; i < name.length; i++) {
         lock = 31 * lock + name.codeUnitAt(i);

@@ -1,8 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:gourmet_go/screens/CustomerScreens/home_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
+import 'injection_container.dart' as di;
 
-void main() {
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'features/core/services/fcm_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  
+  await di.init();
+  
+  // Initialize FCM
+  final fcmService = FCMService();
+  await fcmService.initialize();
+  
   runApp(const GourmetGoApp());
 }
 
@@ -22,7 +40,7 @@ class GourmetGoApp extends StatelessWidget {
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const SplashScreen(),
     );
   }
 }

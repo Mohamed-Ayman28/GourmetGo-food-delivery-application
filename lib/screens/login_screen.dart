@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'signup_screen.dart';
 import '../widgets/auth_widget.dart';
+import 'CustomerScreens/home_screen.dart';
+import 'AdminScreens/dashboard_screen.dart';
+import '../features/order_tracking/presentation/pages/staff_order_manager_screen.dart';
+import '../features/order_tracking/presentation/pages/driver_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -138,8 +144,48 @@ class _LoginScreenState extends State<LoginScreen>
 
                       AuthPrimaryButton(
                         label: 'Login',
-                        onTap: () {
-                          // TODO: implement login logic
+                        onTap: () async {
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text.trim();
+                          if (email.isEmpty || password.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please enter email and password')),
+                            );
+                            return;
+                          }
+                          try {
+                            final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+                              email: email,
+                              password: password,
+                            );
+                            if (cred.user != null) {
+                              final doc = await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).get();
+                              String role = 'customer';
+                              if (doc.exists) {
+                                role = doc.data()?['role'] ?? 'customer';
+                              }
+                              
+                              if (!mounted) return;
+                              
+                              if (role == 'admin') {
+                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
+                              } else if (role == 'staff') {
+                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const StaffOrderManagerScreen()));
+                              } else if (role == 'driver') {
+                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => DriverDashboardScreen(driverId: cred.user!.uid)));
+                              } else {
+                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+                              }
+                            }
+                          } on FirebaseAuthException catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.message ?? 'Login failed')),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
                         },
                       ),
 

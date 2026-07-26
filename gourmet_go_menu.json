@@ -1,0 +1,1224 @@
+{
+  "restaurant": "Gourmet GO",
+  "categories": [
+    {
+      "category": "Burgers",
+      "items": [
+        {
+          "name": "Classic Cheeseburger",
+          "description": "Juicy beef patty topped with melted cheddar, lettuce, tomato and house sauce.",
+          "price": "$8.50",
+          "rating": 4.6,
+          "ingredients": [
+            "Beef patty",
+            "Cheddar cheese",
+            "Lettuce",
+            "Tomato",
+            "Onion",
+            "Brioche bun",
+            "House sauce"
+          ],
+          "image": "https://loremflickr.com/480/360/cheeseburger?lock=60389"
+        },
+        {
+          "name": "Bacon BBQ Burger",
+          "description": "Smoky bacon and tangy BBQ sauce piled on a grilled beef patty.",
+          "price": "$9.75",
+          "rating": 4.0,
+          "ingredients": [
+            "Beef patty",
+            "Bacon",
+            "BBQ sauce",
+            "Onion rings",
+            "Cheddar cheese",
+            "Brioche bun"
+          ],
+          "image": "https://loremflickr.com/480/360/baconburger?lock=37260"
+        },
+        {
+          "name": "Mushroom Swiss Burger",
+          "description": "Sauteed mushrooms and melted Swiss cheese over a char-grilled patty.",
+          "price": "$9.25",
+          "rating": 4.3,
+          "ingredients": [
+            "Beef patty",
+            "Swiss cheese",
+            "Sauteed mushrooms",
+            "Garlic aioli",
+            "Brioche bun"
+          ],
+          "image": "https://loremflickr.com/480/360/mushroomburger?lock=116"
+        },
+        {
+          "name": "Double Beef Burger",
+          "description": "Two beef patties stacked with double cheese for the ultimate indulgence.",
+          "price": "$11.00",
+          "rating": 4.2,
+          "ingredients": [
+            "Beef patty x2",
+            "American cheese",
+            "Pickles",
+            "Onion",
+            "Ketchup",
+            "Mustard",
+            "Bun"
+          ],
+          "image": "https://loremflickr.com/480/360/doubleburger?lock=97956"
+        },
+        {
+          "name": "Spicy Jalapeno Burger",
+          "description": "A fiery kick from fresh jalapenos and spicy chipotle mayo.",
+          "price": "$9.50",
+          "rating": 4.7,
+          "ingredients": [
+            "Beef patty",
+            "Jalapenos",
+            "Pepper jack cheese",
+            "Chipotle mayo",
+            "Lettuce",
+            "Bun"
+          ],
+          "image": "https://loremflickr.com/480/360/spicyburger?lock=28719"
+        },
+        {
+          "name": "Veggie Burger",
+          "description": "Plant-based patty with fresh greens and avocado spread.",
+          "price": "$8.00",
+          "rating": 4.7,
+          "ingredients": [
+            "Plant-based patty",
+            "Avocado spread",
+            "Lettuce",
+            "Tomato",
+            "Vegan bun"
+          ],
+          "image": "https://loremflickr.com/480/360/veggieburger?lock=9115"
+        },
+        {
+          "name": "Blue Cheese Burger",
+          "description": "Bold blue cheese crumbles melted over a juicy grilled patty.",
+          "price": "$10.25",
+          "rating": 4.9,
+          "ingredients": [
+            "Beef patty",
+            "Blue cheese",
+            "Caramelized onion",
+            "Arugula",
+            "Bun"
+          ],
+          "image": "https://loremflickr.com/480/360/bluecheeseburger?lock=3748"
+        },
+        {
+          "name": "Truffle Burger",
+          "description": "Truffle aioli and parmesan shavings elevate this gourmet classic.",
+          "price": "$12.50",
+          "rating": 4.1,
+          "ingredients": [
+            "Beef patty",
+            "Truffle aioli",
+            "Parmesan",
+            "Arugula",
+            "Brioche bun"
+          ],
+          "image": "https://loremflickr.com/480/360/truffleburger?lock=21959"
+        },
+        {
+          "name": "Hawaiian Burger",
+          "description": "Sweet grilled pineapple and teriyaki glaze bring island flavor.",
+          "price": "$9.90",
+          "rating": 4.4,
+          "ingredients": [
+            "Beef patty",
+            "Grilled pineapple",
+            "Teriyaki sauce",
+            "Cheddar cheese",
+            "Bun"
+          ],
+          "image": "https://loremflickr.com/480/360/hawaiianburger?lock=21966"
+        },
+        {
+          "name": "BBQ Pulled Pork Burger",
+          "description": "Slow-cooked pulled pork smothered in tangy BBQ sauce.",
+          "price": "$10.50",
+          "rating": 4.0,
+          "ingredients": [
+            "Pulled pork",
+            "BBQ sauce",
+            "Coleslaw",
+            "Pickles",
+            "Bun"
+          ],
+          "image": "https://loremflickr.com/480/360/pulledporkburger?lock=59053"
+        },
+        {
+          "name": "Chicken Burger",
+          "description": "Crispy grilled chicken breast with fresh lettuce and mayo.",
+          "price": "$8.75",
+          "rating": 4.2,
+          "ingredients": [
+            "Chicken breast",
+            "Lettuce",
+            "Tomato",
+            "Mayo",
+            "Bun"
+          ],
+          "image": "https://loremflickr.com/480/360/chickenburger?lock=55576"
+        },
+        {
+          "name": "Fish Burger",
+          "description": "Crispy battered fish fillet with tartar sauce and lettuce.",
+          "price": "$9.00",
+          "rating": 4.5,
+          "ingredients": [
+            "Fish fillet",
+            "Tartar sauce",
+            "Lettuce",
+            "Bun"
+          ],
+          "image": "https://loremflickr.com/480/360/fishburger?lock=52954"
+        },
+        {
+          "name": "Breakfast Burger",
+          "description": "Beef patty topped with a fried egg and crispy bacon.",
+          "price": "$10.75",
+          "rating": 4.0,
+          "ingredients": [
+            "Beef patty",
+            "Fried egg",
+            "Bacon",
+            "Cheddar cheese",
+            "Bun"
+          ],
+          "image": "https://loremflickr.com/480/360/breakfastburger?lock=37833"
+        },
+        {
+          "name": "Black Bean Burger",
+          "description": "Hearty black bean patty with fresh salsa and avocado.",
+          "price": "$8.25",
+          "rating": 4.2,
+          "ingredients": [
+            "Black bean patty",
+            "Salsa",
+            "Avocado",
+            "Lettuce",
+            "Bun"
+          ],
+          "image": "https://loremflickr.com/480/360/blackbeanburger?lock=62187"
+        },
+        {
+          "name": "Smoky Chipotle Burger",
+          "description": "Chipotle-spiced beef patty with smoked gouda and onion straws.",
+          "price": "$10.00",
+          "rating": 4.6,
+          "ingredients": [
+            "Beef patty",
+            "Smoked gouda",
+            "Chipotle sauce",
+            "Crispy onions",
+            "Bun"
+          ],
+          "image": "https://loremflickr.com/480/360/chipotleburger?lock=33292"
+        }
+      ]
+    },
+    {
+      "category": "Pizza",
+      "items": [
+        {
+          "name": "Margherita Pizza",
+          "description": "Classic tomato sauce, fresh mozzarella and basil leaves.",
+          "price": "$9.00",
+          "rating": 4.5,
+          "ingredients": [
+            "Tomato sauce",
+            "Mozzarella",
+            "Fresh basil",
+            "Olive oil",
+            "Pizza dough"
+          ],
+          "image": "https://loremflickr.com/480/360/margheritapizza?lock=73549"
+        },
+        {
+          "name": "Pepperoni Pizza",
+          "description": "Loaded with crispy pepperoni slices and melted mozzarella.",
+          "price": "$10.50",
+          "rating": 4.2,
+          "ingredients": [
+            "Tomato sauce",
+            "Mozzarella",
+            "Pepperoni",
+            "Pizza dough"
+          ],
+          "image": "https://loremflickr.com/480/360/pepperonipizza?lock=1286"
+        },
+        {
+          "name": "BBQ Chicken Pizza",
+          "description": "Grilled chicken, red onion and smoky BBQ sauce base.",
+          "price": "$11.25",
+          "rating": 4.6,
+          "ingredients": [
+            "BBQ sauce",
+            "Grilled chicken",
+            "Red onion",
+            "Mozzarella",
+            "Pizza dough"
+          ],
+          "image": "https://loremflickr.com/480/360/bbqchickenpizza?lock=94229"
+        },
+        {
+          "name": "Four Cheese Pizza",
+          "description": "A rich blend of mozzarella, gorgonzola, parmesan and provolone.",
+          "price": "$11.00",
+          "rating": 4.8,
+          "ingredients": [
+            "Mozzarella",
+            "Gorgonzola",
+            "Parmesan",
+            "Provolone",
+            "Pizza dough"
+          ],
+          "image": "https://loremflickr.com/480/360/fourcheesepizza?lock=78799"
+        },
+        {
+          "name": "Veggie Supreme Pizza",
+          "description": "Bell peppers, mushrooms, olives, onion and sweet corn.",
+          "price": "$10.00",
+          "rating": 4.0,
+          "ingredients": [
+            "Tomato sauce",
+            "Bell peppers",
+            "Mushrooms",
+            "Olives",
+            "Onion",
+            "Sweet corn",
+            "Mozzarella"
+          ],
+          "image": "https://loremflickr.com/480/360/vegetablepizza?lock=64099"
+        },
+        {
+          "name": "Hawaiian Pizza",
+          "description": "Sweet pineapple chunks and smoked ham on a cheesy base.",
+          "price": "$10.25",
+          "rating": 4.8,
+          "ingredients": [
+            "Tomato sauce",
+            "Ham",
+            "Pineapple",
+            "Mozzarella",
+            "Pizza dough"
+          ],
+          "image": "https://loremflickr.com/480/360/hawaiianpizza?lock=42974"
+        },
+        {
+          "name": "Meat Lovers Pizza",
+          "description": "Pepperoni, sausage, bacon and ham piled high.",
+          "price": "$12.50",
+          "rating": 4.7,
+          "ingredients": [
+            "Tomato sauce",
+            "Pepperoni",
+            "Sausage",
+            "Bacon",
+            "Ham",
+            "Mozzarella"
+          ],
+          "image": "https://loremflickr.com/480/360/meatpizza?lock=21534"
+        },
+        {
+          "name": "Mushroom Truffle Pizza",
+          "description": "Wild mushrooms and truffle oil over creamy white sauce.",
+          "price": "$13.00",
+          "rating": 4.3,
+          "ingredients": [
+            "White sauce",
+            "Wild mushrooms",
+            "Truffle oil",
+            "Mozzarella",
+            "Parmesan"
+          ],
+          "image": "https://loremflickr.com/480/360/mushroompizza?lock=40427"
+        },
+        {
+          "name": "Buffalo Chicken Pizza",
+          "description": "Spicy buffalo chicken with ranch drizzle and mozzarella.",
+          "price": "$11.50",
+          "rating": 4.2,
+          "ingredients": [
+            "Buffalo sauce",
+            "Grilled chicken",
+            "Ranch drizzle",
+            "Mozzarella",
+            "Pizza dough"
+          ],
+          "image": "https://loremflickr.com/480/360/buffalopizza?lock=60835"
+        },
+        {
+          "name": "Pesto Caprese Pizza",
+          "description": "Basil pesto, cherry tomatoes and fresh mozzarella pearls.",
+          "price": "$11.75",
+          "rating": 5.0,
+          "ingredients": [
+            "Basil pesto",
+            "Cherry tomatoes",
+            "Mozzarella pearls",
+            "Pizza dough"
+          ],
+          "image": "https://loremflickr.com/480/360/pestopizza?lock=84330"
+        },
+        {
+          "name": "Diavola Pizza",
+          "description": "Spicy salami and chili flakes for those who love heat.",
+          "price": "$11.00",
+          "rating": 4.3,
+          "ingredients": [
+            "Tomato sauce",
+            "Spicy salami",
+            "Chili flakes",
+            "Mozzarella",
+            "Pizza dough"
+          ],
+          "image": "https://loremflickr.com/480/360/spicypizza?lock=86397"
+        },
+        {
+          "name": "White Pizza",
+          "description": "Ricotta, mozzarella and garlic on a sauce-free base.",
+          "price": "$10.50",
+          "rating": 4.1,
+          "ingredients": [
+            "Ricotta",
+            "Mozzarella",
+            "Garlic",
+            "Olive oil",
+            "Pizza dough"
+          ],
+          "image": "https://loremflickr.com/480/360/whitepizza?lock=97596"
+        },
+        {
+          "name": "Seafood Pizza",
+          "description": "Shrimp, calamari and mussels with garlic tomato sauce.",
+          "price": "$13.50",
+          "rating": 4.1,
+          "ingredients": [
+            "Tomato sauce",
+            "Shrimp",
+            "Calamari",
+            "Mussels",
+            "Mozzarella"
+          ],
+          "image": "https://loremflickr.com/480/360/seafoodpizza?lock=15448"
+        },
+        {
+          "name": "Prosciutto Arugula Pizza",
+          "description": "Thin prosciutto slices over peppery arugula and parmesan.",
+          "price": "$12.75",
+          "rating": 4.8,
+          "ingredients": [
+            "Tomato sauce",
+            "Prosciutto",
+            "Arugula",
+            "Parmesan",
+            "Mozzarella"
+          ],
+          "image": "https://loremflickr.com/480/360/prosciuttopizza?lock=5621"
+        },
+        {
+          "name": "Vegan Delight Pizza",
+          "description": "Plant-based cheese with roasted vegetables and vegan pesto.",
+          "price": "$11.00",
+          "rating": 4.6,
+          "ingredients": [
+            "Vegan cheese",
+            "Roasted vegetables",
+            "Vegan pesto",
+            "Pizza dough"
+          ],
+          "image": "https://loremflickr.com/480/360/veganpizza?lock=24829"
+        }
+      ]
+    },
+    {
+      "category": "Drinks",
+      "items": [
+        {
+          "name": "Fresh Lemonade",
+          "description": "Cool and refreshing lemonade squeezed daily.",
+          "price": "$3.50",
+          "rating": 4.8,
+          "ingredients": [
+            "Lemon juice",
+            "Water",
+            "Sugar",
+            "Mint leaves"
+          ],
+          "image": "https://loremflickr.com/480/360/lemonade?lock=1731"
+        },
+        {
+          "name": "Iced Tea",
+          "description": "Chilled black tea brewed fresh and lightly sweetened.",
+          "price": "$3.25",
+          "rating": 4.7,
+          "ingredients": [
+            "Black tea",
+            "Ice",
+            "Sugar",
+            "Lemon slice"
+          ],
+          "image": "https://loremflickr.com/480/360/icedtea?lock=22706"
+        },
+        {
+          "name": "Cola",
+          "description": "Classic fizzy cola served ice cold.",
+          "price": "$2.75",
+          "rating": 4.5,
+          "ingredients": [
+            "Carbonated cola",
+            "Ice"
+          ],
+          "image": "https://loremflickr.com/480/360/cola?lock=24991"
+        },
+        {
+          "name": "Orange Juice",
+          "description": "Freshly squeezed orange juice, no added sugar.",
+          "price": "$3.75",
+          "rating": 5.0,
+          "ingredients": [
+            "Fresh oranges"
+          ],
+          "image": "https://loremflickr.com/480/360/orangejuice?lock=63748"
+        },
+        {
+          "name": "Mango Smoothie",
+          "description": "Creamy blended mango with a hint of yogurt.",
+          "price": "$4.50",
+          "rating": 4.4,
+          "ingredients": [
+            "Mango",
+            "Yogurt",
+            "Honey",
+            "Ice"
+          ],
+          "image": "https://loremflickr.com/480/360/mangosmoothie?lock=30006"
+        },
+        {
+          "name": "Strawberry Milkshake",
+          "description": "Rich and creamy milkshake blended with fresh strawberries.",
+          "price": "$4.75",
+          "rating": 4.6,
+          "ingredients": [
+            "Strawberries",
+            "Milk",
+            "Ice cream"
+          ],
+          "image": "https://loremflickr.com/480/360/strawberrymilkshake?lock=79378"
+        },
+        {
+          "name": "Chocolate Milkshake",
+          "description": "Thick chocolate milkshake topped with whipped cream.",
+          "price": "$4.75",
+          "rating": 4.8,
+          "ingredients": [
+            "Chocolate syrup",
+            "Milk",
+            "Ice cream",
+            "Whipped cream"
+          ],
+          "image": "https://loremflickr.com/480/360/chocolatemilkshake?lock=7452"
+        },
+        {
+          "name": "Sparkling Water",
+          "description": "Crisp and refreshing carbonated mineral water.",
+          "price": "$2.50",
+          "rating": 4.6,
+          "ingredients": [
+            "Carbonated water"
+          ],
+          "image": "https://loremflickr.com/480/360/sparklingwater?lock=33336"
+        },
+        {
+          "name": "Iced Coffee",
+          "description": "Bold cold brew coffee served over ice.",
+          "price": "$3.90",
+          "rating": 4.9,
+          "ingredients": [
+            "Cold brew coffee",
+            "Ice",
+            "Milk"
+          ],
+          "image": "https://loremflickr.com/480/360/icedcoffee?lock=41553"
+        },
+        {
+          "name": "Mojito Mocktail",
+          "description": "A zesty non-alcoholic mojito with lime and mint.",
+          "price": "$4.25",
+          "rating": 4.6,
+          "ingredients": [
+            "Lime",
+            "Mint leaves",
+            "Soda water",
+            "Sugar syrup"
+          ],
+          "image": "https://loremflickr.com/480/360/mojito?lock=76865"
+        },
+        {
+          "name": "Watermelon Juice",
+          "description": "Naturally sweet and hydrating watermelon juice.",
+          "price": "$3.75",
+          "rating": 4.7,
+          "ingredients": [
+            "Fresh watermelon"
+          ],
+          "image": "https://loremflickr.com/480/360/watermelonjuice?lock=14075"
+        },
+        {
+          "name": "Ginger Ale",
+          "description": "Spicy-sweet carbonated ginger ale.",
+          "price": "$2.90",
+          "rating": 4.0,
+          "ingredients": [
+            "Ginger extract",
+            "Carbonated water",
+            "Sugar"
+          ],
+          "image": "https://loremflickr.com/480/360/gingerale?lock=30484"
+        },
+        {
+          "name": "Hibiscus Iced Tea",
+          "description": "Tart and floral hibiscus tea served chilled.",
+          "price": "$3.60",
+          "rating": 4.2,
+          "ingredients": [
+            "Hibiscus flowers",
+            "Water",
+            "Sugar",
+            "Ice"
+          ],
+          "image": "https://loremflickr.com/480/360/hibiscustea?lock=91347"
+        },
+        {
+          "name": "Pineapple Juice",
+          "description": "Sweet tropical pineapple juice, freshly pressed.",
+          "price": "$3.75",
+          "rating": 4.3,
+          "ingredients": [
+            "Fresh pineapple"
+          ],
+          "image": "https://loremflickr.com/480/360/pineapplejuice?lock=44"
+        },
+        {
+          "name": "Vanilla Latte",
+          "description": "Smooth espresso with steamed milk and vanilla syrup.",
+          "price": "$4.25",
+          "rating": 4.1,
+          "ingredients": [
+            "Espresso",
+            "Steamed milk",
+            "Vanilla syrup"
+          ],
+          "image": "https://loremflickr.com/480/360/vanillalatte?lock=28637"
+        }
+      ]
+    },
+    {
+      "category": "Steaks",
+      "items": [
+        {
+          "name": "Ribeye Steak",
+          "description": "Well-marbled ribeye grilled to perfection, full of flavor.",
+          "price": "$22.00",
+          "rating": 4.2,
+          "ingredients": [
+            "Ribeye cut",
+            "Salt",
+            "Black pepper",
+            "Butter",
+            "Rosemary"
+          ],
+          "image": "https://loremflickr.com/480/360/ribeyesteak?lock=78779"
+        },
+        {
+          "name": "Filet Mignon",
+          "description": "Tender and lean beef filet cooked to your liking.",
+          "price": "$26.50",
+          "rating": 4.1,
+          "ingredients": [
+            "Beef filet",
+            "Salt",
+            "Black pepper",
+            "Garlic butter"
+          ],
+          "image": "https://loremflickr.com/480/360/filetmignon?lock=10157"
+        },
+        {
+          "name": "T-Bone Steak",
+          "description": "Classic T-bone with a rich strip and tenderloin combo.",
+          "price": "$24.00",
+          "rating": 4.3,
+          "ingredients": [
+            "T-bone cut",
+            "Salt",
+            "Black pepper",
+            "Herbs"
+          ],
+          "image": "https://loremflickr.com/480/360/tbonesteak?lock=13962"
+        },
+        {
+          "name": "Sirloin Steak",
+          "description": "Lean and flavorful sirloin, grilled with herb butter.",
+          "price": "$19.50",
+          "rating": 4.6,
+          "ingredients": [
+            "Sirloin cut",
+            "Salt",
+            "Black pepper",
+            "Herb butter"
+          ],
+          "image": "https://loremflickr.com/480/360/sirloinsteak?lock=27223"
+        },
+        {
+          "name": "New York Strip",
+          "description": "Juicy strip steak with a perfectly seared crust.",
+          "price": "$23.00",
+          "rating": 4.4,
+          "ingredients": [
+            "NY strip cut",
+            "Salt",
+            "Black pepper",
+            "Butter"
+          ],
+          "image": "https://loremflickr.com/480/360/stripsteak?lock=91583"
+        },
+        {
+          "name": "Porterhouse Steak",
+          "description": "A hearty cut combining tenderloin and strip steak.",
+          "price": "$28.00",
+          "rating": 4.4,
+          "ingredients": [
+            "Porterhouse cut",
+            "Salt",
+            "Black pepper",
+            "Rosemary"
+          ],
+          "image": "https://loremflickr.com/480/360/porterhousesteak?lock=414"
+        },
+        {
+          "name": "Tomahawk Steak",
+          "description": "Show-stopping bone-in ribeye, grilled over open flame.",
+          "price": "$38.00",
+          "rating": 4.2,
+          "ingredients": [
+            "Tomahawk ribeye",
+            "Salt",
+            "Black pepper",
+            "Garlic",
+            "Thyme"
+          ],
+          "image": "https://loremflickr.com/480/360/tomahawksteak?lock=1512"
+        },
+        {
+          "name": "Peppercorn Steak",
+          "description": "Beef steak crusted in cracked peppercorn with creamy sauce.",
+          "price": "$21.50",
+          "rating": 4.3,
+          "ingredients": [
+            "Beef steak",
+            "Cracked peppercorn",
+            "Cream sauce",
+            "Brandy"
+          ],
+          "image": "https://loremflickr.com/480/360/peppercornsteak?lock=96993"
+        },
+        {
+          "name": "Garlic Butter Steak",
+          "description": "Pan-seared steak finished with a rich garlic butter baste.",
+          "price": "$20.75",
+          "rating": 4.9,
+          "ingredients": [
+            "Beef steak",
+            "Garlic",
+            "Butter",
+            "Thyme"
+          ],
+          "image": "https://loremflickr.com/480/360/garlicbuttersteak?lock=59459"
+        },
+        {
+          "name": "Wagyu Steak",
+          "description": "Luxurious Wagyu beef with intense marbling and flavor.",
+          "price": "$45.00",
+          "rating": 4.6,
+          "ingredients": [
+            "Wagyu beef",
+            "Salt",
+            "Black pepper"
+          ],
+          "image": "https://loremflickr.com/480/360/wagyusteak?lock=2494"
+        },
+        {
+          "name": "Grilled Flank Steak",
+          "description": "Marinated flank steak grilled and thinly sliced.",
+          "price": "$18.00",
+          "rating": 4.6,
+          "ingredients": [
+            "Flank steak",
+            "Marinade",
+            "Garlic",
+            "Lime"
+          ],
+          "image": "https://loremflickr.com/480/360/flanksteak?lock=16965"
+        },
+        {
+          "name": "BBQ Steak",
+          "description": "Beef steak glazed with smoky house BBQ sauce.",
+          "price": "$19.00",
+          "rating": 4.2,
+          "ingredients": [
+            "Beef steak",
+            "BBQ sauce",
+            "Spices"
+          ],
+          "image": "https://loremflickr.com/480/360/bbqsteak?lock=16319"
+        },
+        {
+          "name": "Steak au Poivre",
+          "description": "French-style steak with a bold brandy peppercorn sauce.",
+          "price": "$23.50",
+          "rating": 4.7,
+          "ingredients": [
+            "Beef steak",
+            "Peppercorn",
+            "Brandy",
+            "Cream"
+          ],
+          "image": "https://loremflickr.com/480/360/steakaupoivre?lock=40730"
+        },
+        {
+          "name": "Surf and Turf",
+          "description": "Grilled steak paired with succulent garlic butter shrimp.",
+          "price": "$29.50",
+          "rating": 4.2,
+          "ingredients": [
+            "Beef steak",
+            "Shrimp",
+            "Garlic butter",
+            "Lemon"
+          ],
+          "image": "https://loremflickr.com/480/360/surfandturf?lock=46277"
+        },
+        {
+          "name": "Herb Crusted Steak",
+          "description": "Steak coated in a fragrant herb and breadcrumb crust.",
+          "price": "$21.00",
+          "rating": 4.4,
+          "ingredients": [
+            "Beef steak",
+            "Herbs",
+            "Breadcrumbs",
+            "Butter"
+          ],
+          "image": "https://loremflickr.com/480/360/herbsteak?lock=75004"
+        }
+      ]
+    },
+    {
+      "category": "Desserts",
+      "items": [
+        {
+          "name": "Chocolate Lava Cake",
+          "description": "Warm chocolate cake with a molten fudgy center.",
+          "price": "$6.50",
+          "rating": 5.0,
+          "ingredients": [
+            "Dark chocolate",
+            "Butter",
+            "Eggs",
+            "Flour",
+            "Sugar"
+          ],
+          "image": "https://loremflickr.com/480/360/lavacake?lock=55910"
+        },
+        {
+          "name": "Cheesecake",
+          "description": "Creamy classic cheesecake on a buttery graham crust.",
+          "price": "$6.00",
+          "rating": 4.6,
+          "ingredients": [
+            "Cream cheese",
+            "Graham crackers",
+            "Sugar",
+            "Eggs"
+          ],
+          "image": "https://loremflickr.com/480/360/cheesecake?lock=89207"
+        },
+        {
+          "name": "Tiramisu",
+          "description": "Layers of espresso-soaked ladyfingers and mascarpone cream.",
+          "price": "$6.75",
+          "rating": 4.6,
+          "ingredients": [
+            "Ladyfingers",
+            "Mascarpone",
+            "Espresso",
+            "Cocoa powder"
+          ],
+          "image": "https://loremflickr.com/480/360/tiramisu?lock=29817"
+        },
+        {
+          "name": "Apple Pie",
+          "description": "Warm spiced apples in a flaky golden crust.",
+          "price": "$5.75",
+          "rating": 4.7,
+          "ingredients": [
+            "Apples",
+            "Cinnamon",
+            "Pie crust",
+            "Sugar"
+          ],
+          "image": "https://loremflickr.com/480/360/applepie?lock=29144"
+        },
+        {
+          "name": "Creme Brulee",
+          "description": "Silky vanilla custard with a crisp caramelized top.",
+          "price": "$6.25",
+          "rating": 4.8,
+          "ingredients": [
+            "Cream",
+            "Vanilla bean",
+            "Egg yolks",
+            "Sugar"
+          ],
+          "image": "https://loremflickr.com/480/360/cremebrulee?lock=69041"
+        },
+        {
+          "name": "Brownie Sundae",
+          "description": "Fudgy brownie topped with vanilla ice cream and syrup.",
+          "price": "$6.90",
+          "rating": 4.8,
+          "ingredients": [
+            "Brownie",
+            "Vanilla ice cream",
+            "Chocolate syrup",
+            "Whipped cream"
+          ],
+          "image": "https://loremflickr.com/480/360/browniesundae?lock=25216"
+        },
+        {
+          "name": "Red Velvet Cake",
+          "description": "Moist red velvet layers with cream cheese frosting.",
+          "price": "$6.25",
+          "rating": 4.2,
+          "ingredients": [
+            "Cocoa powder",
+            "Buttermilk",
+            "Cream cheese frosting",
+            "Red food coloring"
+          ],
+          "image": "https://loremflickr.com/480/360/redvelvetcake?lock=36410"
+        },
+        {
+          "name": "Panna Cotta",
+          "description": "Silky Italian cream dessert topped with berry coulis.",
+          "price": "$6.00",
+          "rating": 4.0,
+          "ingredients": [
+            "Cream",
+            "Gelatin",
+            "Vanilla",
+            "Berry coulis"
+          ],
+          "image": "https://loremflickr.com/480/360/pannacotta?lock=42671"
+        },
+        {
+          "name": "Chocolate Mousse",
+          "description": "Light and airy dark chocolate mousse.",
+          "price": "$5.90",
+          "rating": 4.3,
+          "ingredients": [
+            "Dark chocolate",
+            "Cream",
+            "Eggs",
+            "Sugar"
+          ],
+          "image": "https://loremflickr.com/480/360/chocolatemousse?lock=77807"
+        },
+        {
+          "name": "Carrot Cake",
+          "description": "Spiced carrot cake with rich cream cheese frosting.",
+          "price": "$6.10",
+          "rating": 4.3,
+          "ingredients": [
+            "Carrots",
+            "Cinnamon",
+            "Walnuts",
+            "Cream cheese frosting"
+          ],
+          "image": "https://loremflickr.com/480/360/carrotcake?lock=88063"
+        },
+        {
+          "name": "Ice Cream Sundae",
+          "description": "Trio of ice cream scoops with toppings and whipped cream.",
+          "price": "$5.50",
+          "rating": 4.2,
+          "ingredients": [
+            "Vanilla ice cream",
+            "Chocolate sauce",
+            "Nuts",
+            "Whipped cream"
+          ],
+          "image": "https://loremflickr.com/480/360/icecreamsundae?lock=41647"
+        },
+        {
+          "name": "Banana Split",
+          "description": "Classic banana split with three ice cream flavors.",
+          "price": "$6.40",
+          "rating": 4.9,
+          "ingredients": [
+            "Banana",
+            "Vanilla ice cream",
+            "Chocolate ice cream",
+            "Strawberry ice cream",
+            "Whipped cream"
+          ],
+          "image": "https://loremflickr.com/480/360/bananasplit?lock=47936"
+        },
+        {
+          "name": "Lemon Tart",
+          "description": "Tangy lemon curd in a crisp buttery tart shell.",
+          "price": "$5.80",
+          "rating": 4.9,
+          "ingredients": [
+            "Lemon curd",
+            "Butter",
+            "Flour",
+            "Sugar"
+          ],
+          "image": "https://loremflickr.com/480/360/lemontart?lock=82945"
+        },
+        {
+          "name": "Churros",
+          "description": "Crispy fried dough sticks dusted with cinnamon sugar.",
+          "price": "$5.25",
+          "rating": 4.3,
+          "ingredients": [
+            "Flour",
+            "Cinnamon",
+            "Sugar",
+            "Chocolate dip"
+          ],
+          "image": "https://loremflickr.com/480/360/churros?lock=88918"
+        },
+        {
+          "name": "Baklava",
+          "description": "Layers of flaky phyllo pastry with nuts and honey syrup.",
+          "price": "$5.60",
+          "rating": 4.7,
+          "ingredients": [
+            "Phyllo dough",
+            "Walnuts",
+            "Honey",
+            "Butter"
+          ],
+          "image": "https://loremflickr.com/480/360/baklava?lock=91279"
+        }
+      ]
+    },
+    {
+      "category": "Fried Chicken",
+      "items": [
+        {
+          "name": "Classic Fried Chicken",
+          "description": "Crispy golden fried chicken with a juicy tender center.",
+          "price": "$9.50",
+          "rating": 4.4,
+          "ingredients": [
+            "Chicken",
+            "Flour",
+            "Buttermilk",
+            "Spices"
+          ],
+          "image": "https://loremflickr.com/480/360/friedchicken?lock=6608"
+        },
+        {
+          "name": "Spicy Fried Chicken",
+          "description": "Fiery seasoned fried chicken with a bold kick.",
+          "price": "$10.00",
+          "rating": 4.9,
+          "ingredients": [
+            "Chicken",
+            "Cayenne pepper",
+            "Flour",
+            "Buttermilk"
+          ],
+          "image": "https://loremflickr.com/480/360/spicyfriedchicken?lock=96809"
+        },
+        {
+          "name": "Honey Butter Chicken",
+          "description": "Crispy fried chicken glazed with sweet honey butter.",
+          "price": "$10.50",
+          "rating": 4.5,
+          "ingredients": [
+            "Chicken",
+            "Honey",
+            "Butter",
+            "Flour"
+          ],
+          "image": "https://loremflickr.com/480/360/honeybutterchicken?lock=2877"
+        },
+        {
+          "name": "Buttermilk Fried Chicken",
+          "description": "Marinated in buttermilk for extra tenderness and flavor.",
+          "price": "$9.75",
+          "rating": 4.3,
+          "ingredients": [
+            "Chicken",
+            "Buttermilk",
+            "Flour",
+            "Spices"
+          ],
+          "image": "https://loremflickr.com/480/360/buttermilkchicken?lock=43357"
+        },
+        {
+          "name": "Korean Fried Chicken",
+          "description": "Double-fried chicken coated in a sweet-spicy gochujang glaze.",
+          "price": "$11.25",
+          "rating": 4.2,
+          "ingredients": [
+            "Chicken",
+            "Gochujang",
+            "Garlic",
+            "Sesame seeds"
+          ],
+          "image": "https://loremflickr.com/480/360/koreanfriedchicken?lock=41471"
+        },
+        {
+          "name": "Nashville Hot Chicken",
+          "description": "Intensely spicy fried chicken, Nashville hot style.",
+          "price": "$10.75",
+          "rating": 4.6,
+          "ingredients": [
+            "Chicken",
+            "Cayenne pepper",
+            "Brown sugar",
+            "Flour"
+          ],
+          "image": "https://loremflickr.com/480/360/nashvillehotchicken?lock=50926"
+        },
+        {
+          "name": "Fried Chicken Tenders",
+          "description": "Golden crispy chicken tenders served with dipping sauce.",
+          "price": "$8.75",
+          "rating": 4.3,
+          "ingredients": [
+            "Chicken tenders",
+            "Flour",
+            "Breadcrumbs",
+            "Dipping sauce"
+          ],
+          "image": "https://loremflickr.com/480/360/chickentenders?lock=13830"
+        },
+        {
+          "name": "Chicken Wings",
+          "description": "Crispy fried wings tossed in your choice of sauce.",
+          "price": "$9.25",
+          "rating": 4.6,
+          "ingredients": [
+            "Chicken wings",
+            "Flour",
+            "Hot sauce",
+            "Butter"
+          ],
+          "image": "https://loremflickr.com/480/360/chickenwings?lock=79733"
+        },
+        {
+          "name": "Popcorn Chicken",
+          "description": "Bite-sized crispy chicken pieces, perfect for snacking.",
+          "price": "$7.50",
+          "rating": 4.9,
+          "ingredients": [
+            "Chicken pieces",
+            "Flour",
+            "Breadcrumbs",
+            "Spices"
+          ],
+          "image": "https://loremflickr.com/480/360/popcornchicken?lock=31273"
+        },
+        {
+          "name": "BBQ Fried Chicken",
+          "description": "Crispy fried chicken brushed with smoky BBQ glaze.",
+          "price": "$10.25",
+          "rating": 4.4,
+          "ingredients": [
+            "Chicken",
+            "BBQ sauce",
+            "Flour",
+            "Spices"
+          ],
+          "image": "https://loremflickr.com/480/360/bbqfriedchicken?lock=15669"
+        },
+        {
+          "name": "Garlic Parmesan Chicken",
+          "description": "Crispy fried chicken tossed in garlic parmesan butter.",
+          "price": "$10.50",
+          "rating": 4.2,
+          "ingredients": [
+            "Chicken",
+            "Garlic",
+            "Parmesan",
+            "Butter"
+          ],
+          "image": "https://loremflickr.com/480/360/garlicparmesanchicken?lock=38894"
+        },
+        {
+          "name": "Crispy Chicken Sandwich",
+          "description": "Crunchy fried chicken breast on a toasted brioche bun.",
+          "price": "$9.90",
+          "rating": 5.0,
+          "ingredients": [
+            "Chicken breast",
+            "Brioche bun",
+            "Pickles",
+            "Mayo"
+          ],
+          "image": "https://loremflickr.com/480/360/chickensandwich?lock=88265"
+        },
+        {
+          "name": "Fried Chicken Bucket",
+          "description": "A shareable bucket of our classic fried chicken pieces.",
+          "price": "$18.00",
+          "rating": 4.5,
+          "ingredients": [
+            "Chicken pieces",
+            "Flour",
+            "Buttermilk",
+            "Spices"
+          ],
+          "image": "https://loremflickr.com/480/360/chickenbucket?lock=83198"
+        },
+        {
+          "name": "Lemon Pepper Chicken",
+          "description": "Crispy fried chicken seasoned with zesty lemon pepper.",
+          "price": "$9.80",
+          "rating": 4.1,
+          "ingredients": [
+            "Chicken",
+            "Lemon zest",
+            "Black pepper",
+            "Flour"
+          ],
+          "image": "https://loremflickr.com/480/360/lemonpepperchicken?lock=30042"
+        },
+        {
+          "name": "Fried Chicken Sliders",
+          "description": "Mini crispy chicken sandwiches, perfect for sharing.",
+          "price": "$8.50",
+          "rating": 4.0,
+          "ingredients": [
+            "Chicken",
+            "Slider buns",
+            "Pickles",
+            "Mayo"
+          ],
+          "image": "https://loremflickr.com/480/360/chickensliders?lock=73720"
+        }
+      ]
+    }
+  ]
+}

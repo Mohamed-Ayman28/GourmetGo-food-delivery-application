@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'CustomerScreens/home_screen.dart';
 import '../widgets/auth_widget.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -76,9 +79,35 @@ class _SignupScreenState extends State<SignupScreen>
     return emailErr == null && passErr == null;
   }
 
-  void _onSignUp() {
+  Future<void> _onSignUp() async {
     if (_validate()) {
-      // TODO: proceed with sign up
+      try {
+        final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+        if (cred.user != null) {
+          await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
+            'name': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'role': 'customer', // Four types: Customer, Admin, Driver, Staff. Defaulting to Customer here.
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Sign up failed')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 

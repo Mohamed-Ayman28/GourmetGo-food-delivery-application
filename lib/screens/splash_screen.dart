@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
+import 'CustomerScreens/home_screen.dart';
+import 'AdminScreens/dashboard_screen.dart';
+import '../features/order_tracking/presentation/pages/staff_order_manager_screen.dart';
+import '../features/order_tracking/presentation/pages/driver_dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,11 +35,36 @@ class _SplashScreenState extends State<SplashScreen>
     );
     _animController.forward();
 
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 3), () async {
+      final user = FirebaseAuth.instance.currentUser;
+      Widget nextScreen = const LoginScreen();
+
+      if (user != null) {
+        try {
+          final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+          String role = 'customer';
+          if (doc.exists) {
+            role = doc.data()?['role'] ?? 'customer';
+          }
+
+          if (role == 'admin') {
+            nextScreen = const AdminDashboardScreen();
+          } else if (role == 'staff') {
+            nextScreen = const StaffOrderManagerScreen();
+          } else if (role == 'driver') {
+            nextScreen = DriverDashboardScreen(driverId: user.uid);
+          } else {
+            nextScreen = const HomeScreen();
+          }
+        } catch (e) {
+          // Fallback to login if error
+        }
+      }
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const LoginScreen(),
+            pageBuilder: (_, __, ___) => nextScreen,
             transitionsBuilder: (_, anim, __, child) =>
                 FadeTransition(opacity: anim, child: child),
             transitionDuration: const Duration(milliseconds: 600),

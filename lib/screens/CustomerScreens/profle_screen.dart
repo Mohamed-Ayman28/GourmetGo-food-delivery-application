@@ -1,8 +1,15 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:gourmet_go/consts/appColors.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gourmet_go/consts/appColors.dart';
+import 'delivery_addresses_screen.dart';
+import 'customer_orders_screen.dart';
+import '../login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,13 +20,75 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   File? _profileImage;
+  String? _profileImageUrl;
+  bool _isUploadingImage = false;
   final ImagePicker _picker = ImagePicker();
 
-  // Mock user data
-  final String _userName = 'Alex Henderson';
-  final String _userEmail = 'alex.henderson@example.com';
-  final int _loyaltyPoints = 2450;
-  static const int _nextRewardAt = 3000;
+  String _userName = 'Loading...';
+  String _userEmail = '';
+  bool _isLoadingUser = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() => _isLoadingUser = true);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _userEmail = user.email ?? '';
+      _userName = user.displayName ?? '';
+
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (doc.exists) {
+          final data = doc.data()!;
+          if (data['profileImageUrl'] != null) {
+            _profileImageUrl = data['profileImageUrl'];
+          }
+          final name = data['name'] ??
+              data['fullName'] ??
+              data['userName'] ??
+              data['displayName'] ??
+              user.displayName;
+          if (name != null && name.toString().isNotEmpty) {
+            _userName = name.toString();
+          }
+          final email = data['email'] ?? user.email;
+          if (email != null && email.toString().isNotEmpty) {
+            _userEmail = email.toString();
+          }
+        }
+      } catch (_) {}
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final localPath = prefs.getString('local_profile_image_${user.uid}');
+        if (localPath != null && _profileImageUrl == null) {
+          final file = File(localPath);
+          if (await file.exists()) {
+            _profileImage = file;
+          }
+        }
+      } catch (_) {}
+
+      if (_userName.isEmpty || _userName == 'Loading...') {
+        _userName = user.email?.split('@').first ?? 'Customer';
+      }
+    } else {
+      _userName = 'Guest User';
+      _userEmail = 'guest@gourmetgo.com';
+    }
+
+    if (mounted) {
+      setState(() => _isLoadingUser = false);
+    }
+  }
 
   Future<void> _pickProfileImage() async {
     showModalBottomSheet(
@@ -110,9 +179,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 title: const Text('Remove Photo',
                     style: TextStyle(
                         fontWeight: FontWeight.w500, color: AppColors.error)),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(ctx);
-                  setState(() => _profileImage = null);
+                  setState(() {
+                    _profileImage = null;
+                    _profileImageUrl = null;
+                  });
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user != null) {
+                    try {
+                      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                        'profileImageUrl': FieldValue.delete(),
+                      });
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.remove('local_profile_image_${user.uid}');
+                    } catch (_) {}
+                  }
                 },
               ),
             ],
@@ -134,7 +216,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (pickedFile != null) {
         setState(() {
           _profileImage = File(pickedFile.path);
+          _profileImageUrl = null;
+          _isUploadingImage = true;
         });
+
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          try {
+            final storageRef = FirebaseStorage.instance.ref().child('user_profiles/${user.uid}.jpg');
+            await storageRef.putFile(_profileImage!);
+            final downloadUrl = await storageRef.getDownloadURL();
+
+            await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+              'profileImageUrl': downloadUrl,
+            }, SetOptions(merge: true));
+
+            if (mounted) {
+              setState(() {
+                _profileImageUrl = downloadUrl;
+              });
+            }
+          } catch (e) {
+            // Fallback to local storage if Firebase Storage fails
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('local_profile_image_${user.uid}', pickedFile.path);
+          }
+        } else {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('local_profile_image_guest', pickedFile.path);
+        }
+
+        if (mounted) {
+          setState(() {
+            _isUploadingImage = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -149,36 +265,271 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _showPaymentMethodsModal() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.credit_card_rounded, color: AppColors.primary),
+                const SizedBox(width: 10),
+                const Text('Payment Methods',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.credit_card, color: AppColors.primary),
+              title: const Text('Credit / Debit Card'),
+              subtitle: const Text('**** **** **** 4242'),
+              trailing: const Icon(Icons.check_circle, color: AppColors.primary),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.apple, color: Colors.black),
+              title: const Text('Apple Pay'),
+              subtitle: const Text('Connected'),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.payments_outlined, color: Colors.green),
+              title: const Text('Cash on Delivery'),
+              subtitle: const Text('Default for local orders'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showHelpCenterModal() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.help_outline_rounded, color: AppColors.primary),
+                const SizedBox(width: 10),
+                const Text('Help & Support',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.phone_outlined, color: AppColors.primary),
+              title: const Text('Call Customer Support'),
+              subtitle: const Text('+1 800-468-7638'),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Calling Support...')),
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.email_outlined, color: AppColors.primary),
+              title: const Text('Email Support'),
+              subtitle: const Text('support@gourmetgo.com'),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Opening email client...')),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSettingsModal() {
+    bool notifsEnabled = true;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.settings_outlined, color: AppColors.primary),
+                    const SizedBox(width: 10),
+                    const Text('App Settings',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: const Text('Order Status Notifications'),
+                  subtitle: const Text('Receive push alerts for delivery status'),
+                  value: notifsEnabled,
+                  activeColor: AppColors.primary,
+                  onChanged: (val) {
+                    setModalState(() => notifsEnabled = val);
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  title: const Text('Language'),
+                  subtitle: const Text('English (US)'),
+                  trailing: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _showLogOutDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Log Out',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              // TODO: Implement actual logout logic
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Logged out successfully'),
-                  behavior: SnackBarBehavior.floating,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        elevation: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-              );
-            },
-            child: const Text('Log Out',
+                child: const Icon(
+                  Icons.logout_rounded,
+                  color: AppColors.error,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Log Out',
                 style: TextStyle(
-                    color: AppColors.error, fontWeight: FontWeight.bold)),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Are you sure you want to log out from your account?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        side: const BorderSide(color: AppColors.border),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await FirebaseAuth.instance.signOut();
+                        if (!mounted) return;
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          (Route<dynamic> route) => false,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Logged out successfully'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Log Out',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -194,29 +545,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildProfileAvatar(),
           const SizedBox(height: 16),
           // ──────── User Name & Email ────────
-          Text(
-            _userName,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+          if (_isLoadingUser)
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: AppColors.primary,
+              ),
+            )
+          else ...[
+            Text(
+              _userName,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _userEmail,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
+            const SizedBox(height: 4),
+            Text(
+              _userEmail,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          // ──────── Loyalty Rewards Card ────────
-          _buildLoyaltyCard(),
-          const SizedBox(height: 24),
+          ],
+          const SizedBox(height: 28),
           // ──────── Menu Items ────────
           _buildMenuSection(),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           // ──────── Log Out Button ────────
           _buildLogOutButton(),
           const SizedBox(height: 32),
@@ -230,7 +589,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: _pickProfileImage,
       child: Stack(
         children: [
-          // Profile image circle
           Container(
             width: 110,
             height: 110,
@@ -256,17 +614,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       width: 110,
                       height: 110,
                     )
-                  : Container(
-                      color: AppColors.secondary,
-                      child: const Icon(
-                        Icons.person_rounded,
-                        size: 55,
-                        color: AppColors.primary,
-                      ),
-                    ),
+                  : _profileImageUrl != null
+                      ? Image.network(
+                          _profileImageUrl!,
+                          fit: BoxFit.cover,
+                          width: 110,
+                          height: 110,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: AppColors.secondary,
+                            child: const Icon(
+                              Icons.person_rounded,
+                              size: 55,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: AppColors.secondary,
+                          child: const Icon(
+                            Icons.person_rounded,
+                            size: 55,
+                            color: AppColors.primary,
+                          ),
+                        ),
             ),
           ),
-          // Camera badge
+          if (_isUploadingImage)
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.black26,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             bottom: 2,
             right: 2,
@@ -297,180 +684,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildLoyaltyCard() {
-    final double progress = _loyaltyPoints / _nextRewardAt;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'LOYALTY REWARDS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white.withValues(alpha: 0.6),
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.star_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Points
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _loyaltyPoints.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},'),
-                    style: const TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      'Points',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Progress bar
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: progress.clamp(0.0, 1.0),
-                            minHeight: 6,
-                            backgroundColor: Colors.white.withValues(alpha: 0.15),
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                                AppColors.primary),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Next reward at ${_nextRewardAt.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} pts',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.white.withValues(alpha: 0.5),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Redeem button
-                  GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Redeem feature coming soon!'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'Redeem',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildMenuSection() {
     final menuItems = [
       _MenuItem(
         icon: Icons.receipt_long_outlined,
         title: 'My Orders',
-        onTap: () => _navigateToPlaceholder('My Orders'),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const CustomerOrdersScreen(),
+            ),
+          );
+        },
       ),
       _MenuItem(
         icon: Icons.credit_card_outlined,
         title: 'Payment Methods',
-        onTap: () => _navigateToPlaceholder('Payment Methods'),
+        onTap: _showPaymentMethodsModal,
       ),
       _MenuItem(
         icon: Icons.location_on_outlined,
         title: 'Delivery Addresses',
-        onTap: () => _navigateToPlaceholder('Delivery Addresses'),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const DeliveryAddressesScreen(),
+            ),
+          );
+        },
       ),
       _MenuItem(
         icon: Icons.help_outline_rounded,
         title: 'Help Center',
-        onTap: () => _navigateToPlaceholder('Help Center'),
+        onTap: _showHelpCenterModal,
       ),
       _MenuItem(
         icon: Icons.settings_outlined,
         title: 'Settings',
-        onTap: () => _navigateToPlaceholder('Settings'),
+        onTap: _showSettingsModal,
       ),
     ];
 
@@ -588,18 +841,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
-  void _navigateToPlaceholder(String title) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _PlaceholderScreen(title: title),
-      ),
-    );
-  }
 }
 
-// ─── Helper model ───
 class _MenuItem {
   final IconData icon;
   final String title;
@@ -610,62 +853,4 @@ class _MenuItem {
     required this.title,
     required this.onTap,
   });
-}
-
-// ─── Placeholder screen for menu items ───
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-
-  const _PlaceholderScreen({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.construction_rounded,
-              size: 64,
-              color: AppColors.primary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Coming Soon',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
