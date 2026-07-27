@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'signup_screen.dart';
 import '../widgets/auth_widget.dart';
 import 'CustomerScreens/home_screen.dart';
 import 'AdminScreens/dashboard_screen.dart';
 import '../features/order_tracking/presentation/pages/staff_order_manager_screen.dart';
 import '../features/order_tracking/presentation/pages/driver_dashboard_screen.dart';
+import '../services/social_auth_service.dart';
+import 'forgot_password/forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,6 +22,9 @@ class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final SocialAuthService _socialAuthService = SocialAuthService();
+  bool _isLoading = false;
+
   late AnimationController _animController;
   late Animation<Offset> _slideAnim;
   late Animation<double> _fadeAnim;
@@ -62,6 +68,81 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
+  void _navigateForRole(String role, String uid) {
+    if (!mounted) return;
+    if (role == 'admin') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+      );
+    } else if (role == 'staff') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const StaffOrderManagerScreen()),
+      );
+    } else if (role == 'driver') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => DriverDashboardScreen(driverId: uid)),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    }
+  }
+
+  Future<void> _handleSocialAuth(Future<SocialAuthResult> Function() authMethod) async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await authMethod();
+      if (!mounted) return;
+
+      switch (result.status) {
+        case SocialAuthStatus.success:
+        case SocialAuthStatus.accountAlreadyExists:
+          if (result.role != null && result.user != null) {
+            _navigateForRole(result.role!, result.user!.uid);
+          }
+          break;
+
+        case SocialAuthStatus.accountNotFound:
+          CustomSnackBar.show(
+            context,
+            message: result.message ?? 'Account does not exist! Please sign up first.',
+            type: SnackBarType.error,
+          );
+          // Note: Since CustomSnackBar doesn't support an Action button natively yet,
+          // the user will need to manually tap Sign Up. If needed we can add action support to CustomSnackBar.
+          break;
+
+        case SocialAuthStatus.cancelled:
+          break;
+
+        case SocialAuthStatus.error:
+          CustomSnackBar.show(
+            context,
+            message: result.message ?? 'Authentication failed.',
+            type: SnackBarType.error,
+          );
+          break;
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.show(
+          context,
+          message: 'Error: $e',
+          type: SnackBarType.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,9 +150,7 @@ class _LoginScreenState extends State<LoginScreen>
       body: SingleChildScrollView(
         child: Column(
           children: [
-  
             const AuthHeader(variant: AuthHeaderVariant.banner),
-
             FadeTransition(
               opacity: _fadeAnim,
               child: SlideTransition(
@@ -86,7 +165,6 @@ class _LoginScreenState extends State<LoginScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                    
                       const Text(
                         'Welcome Back!',
                         style: TextStyle(
@@ -105,7 +183,16 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       const SizedBox(height: 30),
 
-                     
+                      if (_isLoading)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFFF5722),
+                            ),
+                          ),
+                        ),
+
                       AuthInputField(
                         controller: _emailController,
                         hint: 'Email Address',
@@ -113,17 +200,20 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      
                       AuthPasswordField(
                         controller: _passwordController,
                         hint: 'Password',
                       ),
 
-                     
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ForgotPasswordScreen(),
+                            ),
+                          ),
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: Size.zero,
@@ -148,49 +238,62 @@ class _LoginScreenState extends State<LoginScreen>
                           final email = _emailController.text.trim();
                           final password = _passwordController.text.trim();
                           if (email.isEmpty || password.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please enter email and password')),
+                            CustomSnackBar.show(
+                              context,
+                              message: 'Please enter email and password',
+                              type: SnackBarType.error,
                             );
                             return;
                           }
                           try {
-                            final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+                            final cred = await FirebaseAuth.instance
+                                .signInWithEmailAndPassword(
                               email: email,
                               password: password,
                             );
                             if (cred.user != null) {
-                              final doc = await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).get();
+                              final docRef = FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(cred.user!.uid);
+                              final doc = await docRef.get();
                               String role = 'customer';
                               if (doc.exists) {
                                 role = doc.data()?['role'] ?? 'customer';
                               }
-                              
-                              if (!mounted) return;
-                              
-                              if (role == 'admin') {
-                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
-                              } else if (role == 'staff') {
-                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const StaffOrderManagerScreen()));
-                              } else if (role == 'driver') {
-                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => DriverDashboardScreen(driverId: cred.user!.uid)));
-                              } else {
-                                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+
+                              // Ensure admin@gmail.com is set up with 'admin' role in Firestore
+                              if (email.toLowerCase() == 'admin@gmail.com') {
+                                role = 'admin';
+                                await docRef.set({
+                                  'name': 'Admin',
+                                  'email': 'admin@gmail.com',
+                                  'role': 'admin',
+                                  'emailVerified': true,
+                                  'createdAt': FieldValue.serverTimestamp(),
+                                }, SetOptions(merge: true));
                               }
+
+                              _navigateForRole(role, cred.user!.uid);
                             }
                           } on FirebaseAuthException catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(e.message ?? 'Login failed')),
+                            if (!mounted) return;
+                            CustomSnackBar.show(
+                              context,
+                              message: e.message ?? 'Login failed',
+                              type: SnackBarType.error,
                             );
                           } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
+                            if (!mounted) return;
+                            CustomSnackBar.show(
+                              context,
+                              message: 'Error: $e',
+                              type: SnackBarType.error,
                             );
                           }
                         },
                       ),
 
                       const SizedBox(height: 24),
-
                       const AuthDivider(),
                       const SizedBox(height: 20),
 
@@ -201,7 +304,13 @@ class _LoginScreenState extends State<LoginScreen>
                               label: 'Google',
                               icon: Icons.g_mobiledata,
                               iconColor: const Color(0xFFDB4437),
-                              onTap: () {},
+                              onTap: _isLoading
+                                  ? null
+                                  : () => _handleSocialAuth(
+                                        () => _socialAuthService.signInWithGoogle(
+                                          isSignUp: false,
+                                        ),
+                                      ),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -210,7 +319,13 @@ class _LoginScreenState extends State<LoginScreen>
                               label: 'Apple',
                               icon: Icons.apple,
                               iconColor: Colors.black,
-                              onTap: () {},
+                              onTap: _isLoading
+                                  ? null
+                                  : () => _handleSocialAuth(
+                                        () => _socialAuthService.signInWithApple(
+                                          isSignUp: false,
+                                        ),
+                                      ),
                             ),
                           ),
                         ],

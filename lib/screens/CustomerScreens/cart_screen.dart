@@ -1,3 +1,4 @@
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -214,12 +215,7 @@ class _CartScreenState extends State<CartScreen> {
 
   void _onPlaceOrder() {
     if (_cartManager.items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your cart is empty! Add some delicious food first.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      CustomSnackBar.show(context, message: 'Your cart is empty! Add some delicious food first.', type: SnackBarType.info);
       return;
     }
 
@@ -331,15 +327,13 @@ class _CartScreenState extends State<CartScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-
-                          // Address Detail Inputs
                           Row(
                             children: [
                               Expanded(
                                 child: TextField(
                                   controller: _buildingController,
                                   decoration: InputDecoration(
-                                    labelText: 'Building #',
+                                    labelText: 'Building',
                                     isDense: true,
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                                   ),

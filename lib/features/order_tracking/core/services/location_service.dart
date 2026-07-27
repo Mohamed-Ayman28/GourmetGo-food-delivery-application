@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -38,10 +39,13 @@ class StructuredAddress {
 
 class LocationService {
   // How accurate a GPS fix must be (in meters) before we trust it.
-  static const double _desiredAccuracyMeters = 20.0;
+  // 50m is good enough for delivery navigation and resolves much faster
+  // than 20m, especially indoors or in dense urban areas.
+  static const double _desiredAccuracyMeters = 50.0;
 
   // How long we wait for an accurate fix before giving up.
-  static const Duration _fixTimeout = Duration(seconds: 25);
+  // 10s is plenty for modern devices; the old 25s caused unacceptable waits.
+  static const Duration _fixTimeout = Duration(seconds: 10);
 
   // How long we wait for the user to enable location services after being
   // sent to the settings screen.
@@ -142,9 +146,7 @@ class LocationService {
     if (!serviceEnabled) {
       // Send the user to the OS settings screen to turn GPS on.
       await Geolocator.openLocationSettings();
-      // Block until the service is actually enabled (or we time out).
-      serviceEnabled = await _waitForLocationServiceEnabled(_serviceEnableTimeout);
-      if (!serviceEnabled) return false;
+      return false;
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
@@ -193,6 +195,17 @@ class LocationService {
     return enabled;
   }
 
+  /// Returns the platform's last cached GPS position instantly (no waiting).
+  /// Returns `null` if no cached position is available.
+  /// Use this to show the map immediately while a fresh fix is obtained.
+  Future<Position?> getLastKnownPosition() async {
+    try {
+      return await Geolocator.getLastKnownPosition();
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Live position stream for driver/customer tracking — smooth updates
   /// every few meters at navigation-grade accuracy. Positions reported by a
   /// mock/fake-GPS provider are filtered out so tracking can't be spoofed.
@@ -202,7 +215,7 @@ class LocationService {
         accuracy: LocationAccuracy.bestForNavigation,
         distanceFilter: 5, // Update every 5 meters for smooth live tracking.
       ),
-    ).where((position) => !position.isMocked);
+    ).where((position) => kDebugMode || !position.isMocked);
   }
 
   /// Returns the device's real current GPS position.
@@ -256,10 +269,37 @@ class LocationService {
       cleanUp();
     });
 
+    // Try to get the current position directly first to avoid waiting for stream updates when stationary
+    try {
+      Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      ).then((position) {
+        if (completer.isCompleted) return;
+        if (position.isMocked && !kDebugMode) return;
+
+        final isStale = position.timestamp
+            .isBefore(requestStartedAt.subtract(const Duration(seconds: 10)));
+        if (!isStale && position.accuracy <= _desiredAccuracyMeters) {
+          completer.complete(position);
+          cleanUp();
+        } else {
+          if (bestPosition == null || position.accuracy < bestPosition!.accuracy) {
+            bestPosition = position;
+          }
+        }
+      }).catchError((_) {
+        // Ignore error; the stream subscription below will handle it
+      });
+    } catch (_) {
+      // Ignore synchronous exception; the stream subscription below will handle it
+    }
+
     try {
       subscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation,
+          accuracy: LocationAccuracy.high,
           distanceFilter: 0,
         ),
       ).listen(
@@ -267,7 +307,7 @@ class LocationService {
           // Never trust a mocked/spoofed location for a food-delivery app —
           // this alone explains most "wrong country" reports on emulators
           // or devices with a fake-GPS app installed.
-          if (position.isMocked) return;
+          if (position.isMocked && !kDebugMode) return;
 
           // Discard cached fixes reported from before we started this
           // request (allowing a few seconds of clock/driver slack).

@@ -1,3 +1,4 @@
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,7 +31,18 @@ class _StaffDashboardView extends StatefulWidget {
 }
 
 class _StaffDashboardViewState extends State<_StaffDashboardView> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _selectedFilterIndex = 0;
+  bool _isSearching = false;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  bool _soundAlertsEnabled = true;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   static const List<String> _filters = [
     'All Orders',
@@ -42,25 +54,46 @@ class _StaffDashboardViewState extends State<_StaffDashboardView> {
   ];
 
   List<OrderEntity> _filterOrders(List<OrderEntity> orders) {
+    List<OrderEntity> statusFiltered;
     switch (_selectedFilterIndex) {
       case 1:
-        return orders.where((o) => o.status == OrderStatus.pending).toList();
+        statusFiltered = orders.where((o) => o.status == OrderStatus.pending).toList();
+        break;
       case 2:
-        return orders.where((o) => o.status == OrderStatus.preparing).toList();
+        statusFiltered = orders.where((o) => o.status == OrderStatus.preparing).toList();
+        break;
       case 3:
-        return orders
+        statusFiltered = orders
             .where((o) =>
                 o.status == OrderStatus.driverAssigned ||
                 o.status == OrderStatus.driverAccepted ||
                 o.status == OrderStatus.driverPickedUp)
             .toList();
+        break;
       case 4:
-        return orders.where((o) => o.status == OrderStatus.outForDelivery).toList();
+        statusFiltered = orders.where((o) => o.status == OrderStatus.outForDelivery).toList();
+        break;
       case 5:
-        return orders.where((o) => o.status == OrderStatus.delivered).toList();
+        statusFiltered = orders.where((o) => o.status == OrderStatus.delivered).toList();
+        break;
       default:
-        return orders;
+        statusFiltered = orders;
+        break;
     }
+
+    if (_searchQuery.trim().isEmpty) {
+      return statusFiltered;
+    }
+
+    final q = _searchQuery.toLowerCase().trim();
+    return statusFiltered.where((o) {
+      final idMatch = o.id.toLowerCase().contains(q) || o.orderNumber.toLowerCase().contains(q);
+      final nameMatch = o.customerName.toLowerCase().contains(q);
+      final phoneMatch = o.customerPhone.toLowerCase().contains(q);
+      final addressMatch = o.customerAddress.toLowerCase().contains(q);
+      final itemsMatch = o.items.any((item) => item.name.toLowerCase().contains(q));
+      return idMatch || nameMatch || phoneMatch || addressMatch || itemsMatch;
+    }).toList();
   }
 
   int _countPending(List<OrderEntity> orders) =>
@@ -80,63 +113,548 @@ class _StaffDashboardViewState extends State<_StaffDashboardView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: AppColors.textPrimary),
-          onPressed: () {},
-        ),
-        title: const Text(
-          'Staff Order Manager',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: AppColors.textPrimary),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_alt_outlined, color: AppColors.textPrimary),
-            onPressed: () {},
-          ),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: AppColors.textPrimary),
-                onPressed: () {},
+    return BlocListener<StaffOrdersCubit, StaffOrdersState>(
+      listener: (context, state) {
+        if (state is StaffOrdersLoaded && state.actionError != null) {
+          CustomSnackBar.show(context, message: state.actionError!, type: SnackBarType.error);
+          context.read<StaffOrdersCubit>().clearActionError();
+        }
+      },
+      child: BlocBuilder<StaffOrdersCubit, StaffOrdersState>(
+        builder: (context, state) {
+          final allOrders = state is StaffOrdersLoaded ? state.orders : <OrderEntity>[];
+
+          return Scaffold(
+            key: _scaffoldKey,
+            backgroundColor: const Color(0xFFF7F8FA),
+            drawer: _buildStaffDrawer(context, allOrders),
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0.5,
+              leading: IconButton(
+                icon: const Icon(Icons.menu, color: AppColors.textPrimary),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.deepOrange,
-                    shape: BoxShape.circle,
+              title: _isSearching
+                  ? TextField(
+                      controller: _searchController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'Search order #, customer, phone, address...',
+                        border: InputBorder.none,
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                      ),
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val;
+                        });
+                      },
+                    )
+                  : const Text(
+                      'Staff Order Manager',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+              actions: [
+                if (_isSearching)
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = false;
+                        _searchQuery = '';
+                        _searchController.clear();
+                      });
+                    },
+                  )
+                else
+                  IconButton(
+                    icon: const Icon(Icons.search, color: AppColors.textPrimary),
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = true;
+                      });
+                    },
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+                  tooltip: 'Sign Out',
+                  onPressed: () => _confirmLogout(context),
+                ),
+              ],
+            ),
+            body: _buildBody(state, allOrders),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBody(StaffOrdersState state, List<OrderEntity> allOrders) {
+    if (state is StaffOrdersLoading || state is StaffOrdersInitial) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    if (state is StaffOrdersError) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 56, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              'Error: ${state.message}',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => context.read<StaffOrdersCubit>().loadActiveOrders(),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (state is StaffOrdersLoaded) {
+      final filteredOrders = _filterOrders(allOrders);
+
+      return Column(
+        children: [
+          const SizedBox(height: 12),
+          // ── Top Metric Cards Row ──
+          _buildMetricsRow(allOrders),
+
+          const SizedBox(height: 12),
+          // ── Filter Pills Row ──
+          _buildFilterPills(allOrders),
+
+          if (_searchQuery.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Found ${filteredOrders.length} matching order${filteredOrders.length == 1 ? '' : 's'} for "$_searchQuery"',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _searchController.clear();
+                        });
+                      },
+                      child: const Text(
+                        'Clear',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 12),
+
+          // ── Orders List ──
+          Expanded(
+            child: filteredOrders.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _searchQuery.isNotEmpty ? Icons.search_off_rounded : Icons.inbox_outlined,
+                              size: 48,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchQuery.isNotEmpty
+                                ? 'No orders found for "$_searchQuery"'
+                                : 'No ${_filters[_selectedFilterIndex].toLowerCase()} orders',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _searchQuery.isNotEmpty
+                                ? 'Try searching by a different name, order ID, or phone number.'
+                                : 'New orders will automatically show up here as customers place them.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (_searchQuery.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _searchQuery = '';
+                                  _searchController.clear();
+                                });
+                              },
+                              icon: const Icon(Icons.clear, size: 16),
+                              label: const Text('Clear Search'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                    itemCount: filteredOrders.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) {
+                      return _StaffOrderCard(order: filteredOrders[index]);
+                    },
+                  ),
+          ),
+        ],
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildStaffDrawer(BuildContext context, List<OrderEntity> orders) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final staffEmail = currentUser?.email ?? 'staff@gourmetgo.com';
+
+    final pendingCount = _countPending(orders);
+    final preparingCount = _countPreparing(orders);
+    final deliveryCount = _countOutForDelivery(orders);
+    final deliveredCount = _countDelivered(orders);
+
+    return Drawer(
+      child: Column(
+        children: [
+          // Drawer Header
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 20),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primary, Color(0xFFE65100)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+                      ),
+                      child: const Icon(Icons.soup_kitchen_rounded, color: Colors.white, size: 26),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          CircleAvatar(radius: 4, backgroundColor: Colors.green),
+                          SizedBox(width: 6),
+                          Text(
+                            'ONLINE',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'GourmetGo Kitchen',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  staffEmail,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.85),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
-                    '6',
+                    'Order Manager & Kitchen Staff',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppColors.textPrimary),
+
+          // Drawer Navigation Items
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: [
+                _drawerTile(
+                  icon: Icons.dashboard_outlined,
+                  title: 'All Active Orders',
+                  count: orders.length,
+                  isSelected: _selectedFilterIndex == 0,
+                  onTap: () {
+                    setState(() {
+                      _selectedFilterIndex = 0;
+                      _isSearching = false;
+                      _searchQuery = '';
+                      _searchController.clear();
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+                const Divider(indent: 16, endIndent: 16),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Text('ORDER STAGES', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                ),
+                _drawerTile(
+                  icon: Icons.hourglass_empty_rounded,
+                  title: 'Pending',
+                  count: pendingCount,
+                  color: Colors.orange,
+                  isSelected: _selectedFilterIndex == 1,
+                  onTap: () {
+                    setState(() => _selectedFilterIndex = 1);
+                    Navigator.pop(context);
+                  },
+                ),
+                _drawerTile(
+                  icon: Icons.soup_kitchen_outlined,
+                  title: 'Preparing',
+                  count: preparingCount,
+                  color: Colors.deepOrange,
+                  isSelected: _selectedFilterIndex == 2,
+                  onTap: () {
+                    setState(() => _selectedFilterIndex = 2);
+                    Navigator.pop(context);
+                  },
+                ),
+                _drawerTile(
+                  icon: Icons.moped_rounded,
+                  title: 'Out for Delivery',
+                  count: deliveryCount,
+                  color: Colors.purple,
+                  isSelected: _selectedFilterIndex == 4,
+                  onTap: () {
+                    setState(() => _selectedFilterIndex = 4);
+                    Navigator.pop(context);
+                  },
+                ),
+                _drawerTile(
+                  icon: Icons.check_circle_outline,
+                  title: 'Delivered Today',
+                  count: deliveredCount,
+                  color: Colors.green,
+                  isSelected: _selectedFilterIndex == 5,
+                  onTap: () {
+                    setState(() => _selectedFilterIndex = 5);
+                    Navigator.pop(context);
+                  },
+                ),
+                const Divider(indent: 16, endIndent: 16),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Text('KITCHEN TOOLS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.bar_chart_rounded, color: AppColors.primary),
+                  title: const Text('Kitchen Metrics', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  subtitle: const Text('View daily summary & revenue', style: TextStyle(fontSize: 11)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showKitchenStatsModal(context, orders);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.refresh_rounded, color: AppColors.primary),
+                  title: const Text('Refresh Orders', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.read<StaffOrdersCubit>().loadActiveOrders();
+                    CustomSnackBar.show(context, message: 'Orders refreshed!', type: SnackBarType.info);
+                  },
+                ),
+                SwitchListTile(
+                  secondary: Icon(
+                    _soundAlertsEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                    color: AppColors.primary,
+                  ),
+                  title: const Text('Sound Alerts', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  subtitle: Text(_soundAlertsEnabled ? 'Alerts ON' : 'Muted', style: const TextStyle(fontSize: 11)),
+                  value: _soundAlertsEnabled,
+                  activeColor: AppColors.primary,
+                  onChanged: (val) {
+                    setState(() => _soundAlertsEnabled = val);
+                    CustomSnackBar.show(
+                      context,
+                      message: val ? 'Sound alerts enabled' : 'Sound alerts muted',
+                      type: SnackBarType.info,
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Logout Footer
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.logout_rounded, color: AppColors.error),
+              title: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.error)),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmLogout(context);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _drawerTile({
+    required IconData icon,
+    required String title,
+    required int count,
+    required bool isSelected,
+    required VoidCallback onTap,
+    Color color = AppColors.primary,
+  }) {
+    return ListTile(
+      selected: isSelected,
+      selectedTileColor: color.withOpacity(0.1),
+      leading: Icon(icon, color: isSelected ? color : Colors.grey.shade700),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+          color: isSelected ? color : AppColors.textPrimary,
+          fontSize: 14,
+        ),
+      ),
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          '$count',
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey.shade800,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  void _confirmLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Confirm Sign Out', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Are you sure you want to sign out of GourmetGo Staff Portal?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () async {
+              Navigator.pop(dialogCtx);
               await FirebaseAuth.instance.signOut();
               if (!context.mounted) return;
               Navigator.pushAndRemoveUntil(
@@ -145,102 +663,89 @@ class _StaffDashboardViewState extends State<_StaffDashboardView> {
                 (route) => false,
               );
             },
+            child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
-      body: BlocListener<StaffOrdersCubit, StaffOrdersState>(
-        listener: (context, state) {
-          if (state is StaffOrdersLoaded && state.actionError != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.actionError!),
-                backgroundColor: Colors.red.shade700,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-            context.read<StaffOrdersCubit>().clearActionError();
-          }
-        },
-        child: BlocBuilder<StaffOrdersCubit, StaffOrdersState>(
-          builder: (context, state) {
-            if (state is StaffOrdersLoading || state is StaffOrdersInitial) {
-              return const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              );
-            }
+    );
+  }
 
-            if (state is StaffOrdersError) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.error_outline, size: 56, color: Colors.grey.shade400),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Error: ${state.message}',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () =>
-                          context.read<StaffOrdersCubit>().loadActiveOrders(),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              );
-            }
+  void _showKitchenStatsModal(BuildContext context, List<OrderEntity> orders) {
+    double totalRevenue = 0;
+    for (final o in orders) {
+      totalRevenue += o.totalAmount;
+    }
+    final totalOrders = orders.length;
+    final avgValue = totalOrders > 0 ? totalRevenue / totalOrders : 0.0;
 
-            if (state is StaffOrdersLoaded) {
-              final allOrders = state.orders;
-              final filteredOrders = _filterOrders(allOrders);
-
-              return Column(
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  const SizedBox(height: 12),
-                  // ── Top Metric Cards Row ──
-                  _buildMetricsRow(allOrders),
-
-                  const SizedBox(height: 12),
-                  // ── Filter Pills Row ──
-                  _buildFilterPills(allOrders),
-
-                  const SizedBox(height: 12),
-
-                  // ── Orders List ──
-                  Expanded(
-                    child: filteredOrders.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.inbox_outlined,
-                                    size: 56, color: Colors.grey.shade300),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'No ${_filters[_selectedFilterIndex].toLowerCase()} orders',
-                                  style: TextStyle(
-                                      fontSize: 15, color: Colors.grey.shade500),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                            itemCount: filteredOrders.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 16),
-                            itemBuilder: (context, index) {
-                              return _StaffOrderCard(order: filteredOrders[index]);
-                            },
-                          ),
+                  const Icon(Icons.analytics_rounded, color: AppColors.primary, size: 28),
+                  const SizedBox(width: 10),
+                  const Text('Kitchen Daily Metrics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
-              );
-            }
+              ),
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _statBox('Total Orders', '$totalOrders', Icons.receipt_long, Colors.blue),
+                  const SizedBox(width: 12),
+                  _statBox('Live Revenue', '\$${totalRevenue.toStringAsFixed(2)}', Icons.payments, Colors.green),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _statBox('Avg. Order', '\$${avgValue.toStringAsFixed(2)}', Icons.show_chart, Colors.purple),
+                  const SizedBox(width: 12),
+                  _statBox('Pending Action', '${_countPending(orders)}', Icons.warning_amber_rounded, Colors.orange),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-            return const SizedBox.shrink();
-          },
+  Widget _statBox(String title, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 8),
+            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+            const SizedBox(height: 2),
+            Text(title, style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+          ],
         ),
       ),
     );
@@ -512,14 +1017,29 @@ class _StaffOrderCard extends StatelessWidget {
                                     .read<StaffOrdersCubit>()
                                     .updateOrderStatus(
                                         order.id, OrderStatus.cancelled);
+                              } else if (val == 'delete') {
+                                _confirmDeleteOrder(context, order);
                               }
                             },
                             itemBuilder: (ctx) => [
-                              const PopupMenuItem(
-                                value: 'cancel',
-                                child: Text('Cancel Order',
-                                    style: TextStyle(color: Colors.red)),
-                              ),
+                              if (order.status != OrderStatus.delivered && order.status != OrderStatus.cancelled)
+                                const PopupMenuItem(
+                                  value: 'cancel',
+                                  child: Text('Cancel Order',
+                                      style: TextStyle(color: Colors.red)),
+                                ),
+                              if (order.status == OrderStatus.delivered)
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                                      SizedBox(width: 8),
+                                      Text('Delete Order',
+                                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
                             ],
                           ),
                         ],
@@ -893,6 +1413,26 @@ class _StaffOrderCard extends StatelessWidget {
                               child: _buildPrimaryWorkflowButton(context),
                             ),
                           ],
+                          if (order.status == OrderStatus.delivered) ...[
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 38,
+                              child: ElevatedButton.icon(
+                                onPressed: () => _confirmDeleteOrder(context, order),
+                                icon: const Icon(Icons.delete_forever_rounded, size: 16),
+                                label: const Text('Delete Order',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red.shade700,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -946,8 +1486,7 @@ class _StaffOrderCard extends StatelessWidget {
             onPressed: () =>
                 cubit.updateOrderStatus(order.id, OrderStatus.confirmed),
             icon: const Icon(Icons.check_circle_outline, size: 16),
-            label: const Text('Confirm Order',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            label: const Text('Confirm'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -1222,6 +1761,33 @@ class _StaffOrderCard extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  void _confirmDeleteOrder(BuildContext context, OrderEntity order) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Order', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text(
+          'Are you sure you want to permanently delete order ${order.orderNumber.isNotEmpty ? order.orderNumber : '#${order.id.substring(0, 5).toUpperCase()}'}? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              context.read<StaffOrdersCubit>().deleteOrder(order.id);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
     );
   }
 }

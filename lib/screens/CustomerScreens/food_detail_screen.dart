@@ -1,3 +1,4 @@
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:gourmet_go/consts/appColors.dart';
 import 'package:gourmet_go/models/food_item.dart';
@@ -196,12 +197,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
             child: _circleButton(
               icon: Icons.share_outlined,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Share feature coming soon!'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                CustomSnackBar.show(context, message: 'Share feature coming soon!', type: SnackBarType.info);
               },
             ),
           ),
@@ -395,11 +391,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                 ),
               ),
               const SizedBox(width: 20),
-
-              // Delivery time
-              Icon(Icons.access_time_rounded,
-                  size: 18,
-                  color: AppColors.textPrimary.withValues(alpha: 0.45)),
               const SizedBox(width: 4),
               Text(
                 '20–35 min',
@@ -444,12 +435,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
             icon: Icons.share_outlined,
             label: 'Share',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Share feature coming soon!'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              CustomSnackBar.show(context, message: 'Share feature coming soon!', type: SnackBarType.info);
             },
           ),
         ],
@@ -540,8 +526,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                 ),
               ),
             ),
-            Icon(Icons.chevron_right_rounded,
-                color: AppColors.success.withValues(alpha: 0.5)),
           ],
         ),
       ),

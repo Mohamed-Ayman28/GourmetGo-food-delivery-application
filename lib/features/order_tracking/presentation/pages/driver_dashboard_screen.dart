@@ -1,3 +1,4 @@
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +8,7 @@ import '../../../../screens/login_screen.dart';
 import '../../domain/entities/order_entity.dart';
 import '../cubit/driver_orders_cubit.dart';
 import '../cubit/driver_orders_state.dart';
+import 'driver_navigation_screen.dart';
 
 class DriverDashboardScreen extends StatelessWidget {
   final String driverId;
@@ -50,13 +52,7 @@ class DriverDashboardScreen extends StatelessWidget {
         body: BlocListener<DriverOrdersCubit, DriverOrdersState>(
           listener: (context, state) {
             if (state is DriverOrdersError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.red.shade700,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              CustomSnackBar.show(context, message: state.message, type: SnackBarType.error);
             }
           },
           child: BlocBuilder<DriverOrdersCubit, DriverOrdersState>(
@@ -261,7 +257,7 @@ class _DriverOrderCard extends StatelessWidget {
           child: ElevatedButton.icon(
             onPressed: () => cubit.updateOrderStatus(order.id, OrderStatus.driverAccepted),
             icon: const Icon(Icons.check_circle_rounded),
-            label: const Text('Accept Order', style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text('Accept Delivery', style: TextStyle(fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -287,31 +283,26 @@ class _DriverOrderCard extends StatelessWidget {
         );
 
       case OrderStatus.driverPickedUp:
-        return SizedBox(
-          width: double.infinity,
-          height: 46,
-          child: ElevatedButton.icon(
-            onPressed: () => cubit.startDelivery(order.id),
-            icon: const Icon(Icons.navigation_rounded),
-            label: const Text('Start Delivery (Out for Delivery)', style: TextStyle(fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade700,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        );
-
       case OrderStatus.outForDelivery:
         return SizedBox(
           width: double.infinity,
           height: 46,
           child: ElevatedButton.icon(
-            onPressed: () => cubit.stopDelivery(order.id),
-            icon: const Icon(Icons.task_alt_rounded),
-            label: const Text('Mark as Delivered', style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DriverNavigationScreen(
+                    order: order,
+                    driverId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.navigation_rounded),
+            label: const Text('Go to Customer', style: TextStyle(fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
+              backgroundColor: Colors.blue.shade700,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),

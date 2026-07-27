@@ -37,15 +37,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   Stream<List<OrderModel>> streamAllActiveOrders() {
     return _firestore
         .collection('orders')
-        .where('status', whereIn: [
-          OrderStatus.pending.name,
-          OrderStatus.confirmed.name,
-          OrderStatus.preparing.name,
-          OrderStatus.driverAssigned.name,
-          OrderStatus.driverAccepted.name,
-          OrderStatus.driverPickedUp.name,
-          OrderStatus.outForDelivery.name,
-        ])
         .snapshots()
         .map((snapshot) {
       final orders = snapshot.docs
@@ -122,32 +113,27 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   Future<void> updateOrderStatus(String orderId, OrderStatus newStatus) async {
     final orderRef = _firestore.collection('orders').doc(orderId);
 
-    await _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(orderRef);
-      if (!snapshot.exists) {
-        throw Exception("Order does not exist!");
-      }
+    final snapshot = await orderRef.get();
+    if (!snapshot.exists) {
+      throw Exception("Order does not exist!");
+    }
 
-      final data = snapshot.data() as Map<String, dynamic>;
-      final currentStatusStr = data['status'] as String? ?? 'pending';
-      final currentStatus = OrderStatus.values.firstWhere(
-        (e) => e.name == currentStatusStr,
-        orElse: () => OrderStatus.pending,
+    final data = snapshot.data() as Map<String, dynamic>;
+    final currentStatusStr = data['status'] as String? ?? 'pending';
+    final currentStatus = OrderStatus.values.firstWhere(
+      (e) => e.name == currentStatusStr,
+      orElse: () => OrderStatus.pending,
+    );
+
+    // Validate allowed transitions
+    final allowedNextStatuses = _getAllowedNextStatuses(currentStatus);
+    if (!allowedNextStatuses.contains(newStatus)) {
+      throw Exception(
+        "Invalid status transition from ${currentStatus.name} to ${newStatus.name}",
       );
+    }
 
-      // Validate allowed transitions
-      final allowedNextStatuses = _getAllowedNextStatuses(currentStatus);
-      if (!allowedNextStatuses.contains(newStatus)) {
-        throw Exception(
-          "Invalid status transition from ${currentStatus.name} to ${newStatus.name}",
-        );
-      }
-
-      final updates = <String, dynamic>{'status': newStatus.name};
-
-      // If order is completed (delivered or cancelled), clear active tracking if needed
-      transaction.update(orderRef, updates);
-    });
+    await orderRef.update({'status': newStatus.name});
   }
 
   @override
@@ -202,8 +188,8 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       final driverPhone = driverData['phone'] ?? '';
       final driverPhotoUrl = driverData['photoUrl'] ?? driverData['driverPhotoUrl'];
 
-      final restaurantLat = (orderData['restaurantLat'] ?? 40.735610).toDouble();
-      final restaurantLng = (orderData['restaurantLng'] ?? -73.991270).toDouble();
+      final restaurantLat = (orderData['restaurantLat'] ?? 0.0).toDouble();
+      final restaurantLng = (orderData['restaurantLng'] ?? 0.0).toDouble();
 
       final driverLocRef = _firestore.collection('driver_locations').doc(driverId);
 
@@ -227,9 +213,9 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   List<OrderStatus> _getAllowedNextStatuses(OrderStatus current) {
     switch (current) {
       case OrderStatus.pending:
-        return [OrderStatus.confirmed, OrderStatus.cancelled];
+        return [OrderStatus.confirmed, OrderStatus.preparing, OrderStatus.cancelled];
       case OrderStatus.confirmed:
-        return [OrderStatus.preparing, OrderStatus.cancelled];
+        return [OrderStatus.preparing, OrderStatus.driverAssigned, OrderStatus.cancelled];
       case OrderStatus.preparing:
         return [OrderStatus.driverAssigned, OrderStatus.outForDelivery, OrderStatus.cancelled];
       case OrderStatus.driverAssigned:
@@ -248,6 +234,16 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
   @override
   Future<void> deleteOrder(String orderId) async {
-    await _firestore.collection('orders').doc(orderId).delete();
+    final orderRef = _firestore.collection('orders').doc(orderId);
+    final snap = await orderRef.get();
+    if (!snap.exists) {
+      throw Exception('Order does not exist!');
+    }
+    final data = snap.data();
+    final statusStr = data?['status'] as String? ?? '';
+    if (statusStr != OrderStatus.delivered.name) {
+      throw Exception('Only delivered orders can be deleted.');
+    }
+    await orderRef.delete();
   }
 }

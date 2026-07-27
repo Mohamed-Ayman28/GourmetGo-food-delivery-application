@@ -1,3 +1,4 @@
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -62,7 +63,7 @@ class _StaffTabState extends State<StaffTab> {
                 if (!mounted) return;
                 Navigator.pop(ctx);
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                CustomSnackBar.show(context, message: 'Error: $e', type: SnackBarType.error);
               } finally {
                 setState(() => isLoading = false);
               }
@@ -103,9 +104,9 @@ class _StaffTabState extends State<StaffTab> {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password reset email sent!')));
+      CustomSnackBar.show(context, message: 'Password reset email sent!', type: SnackBarType.info);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      CustomSnackBar.show(context, message: 'Error: $e', type: SnackBarType.error);
     }
   }
 

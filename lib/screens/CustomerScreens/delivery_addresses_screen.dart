@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gourmet_go/consts/appColors.dart';
 import 'package:gourmet_go/features/order_tracking/core/services/location_service.dart';
+import 'package:gourmet_go/widgets/map_location_picker_sheet.dart';
 
 class DeliveryAddressesScreen extends StatefulWidget {
   const DeliveryAddressesScreen({super.key});
@@ -57,288 +56,50 @@ class _DeliveryAddressesScreenState extends State<DeliveryAddressesScreen> {
   }
 
   void _openMapPicker() {
-    final mapController = MapController();
-    double tempLat = _currentLat ?? 30.0444;
-    double tempLng = _currentLng ?? 31.2357;
-    String tempAddress = _currentAddress ?? 'Tap on map or detect GPS...';
-    bool isDetectingGps = false;
+    MapLocationPickerSheet.show(
+      context,
+      initialLat: _currentLat,
+      initialLng: _currentLng,
+      initialAddress: _currentAddress,
+      onLocationConfirmed: (tempLat, tempLng, tempAddress) async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_delivery_address', tempAddress);
+        await prefs.setDouble('user_delivery_lat', tempLat);
+        await prefs.setDouble('user_delivery_lng', tempLng);
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (bottomCtx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.85,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.location_on, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Pick Exact Location on Map',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(bottomCtx),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: Stack(
-                    children: [
-                      FlutterMap(
-                        mapController: mapController,
-                        options: MapOptions(
-                          initialCenter: LatLng(tempLat, tempLng),
-                          initialZoom: 16.0,
-                          onTap: (tapPos, point) async {
-                            tempLat = point.latitude;
-                            tempLng = point.longitude;
-                            mapController.move(point, mapController.camera.zoom);
-                            final addr = await _locationService.reverseGeocode(tempLat, tempLng);
-                            setModalState(() {
-                              tempAddress = addr.fullAddress;
-                            });
-                          },
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.example.gourmet_go',
-                          ),
-                          MarkerLayer(
-                            markers: [
-                              Marker(
-                                point: LatLng(tempLat, tempLng),
-                                width: 50,
-                                height: 50,
-                                child: const Icon(
-                                  Icons.location_on,
-                                  color: AppColors.primary,
-                                  size: 48,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      // Search Location Bar Overlay
-                      Positioned(
-                        top: 12,
-                        left: 16,
-                        right: 70,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 6,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            decoration: const InputDecoration(
-                              hintText: 'Search city, street, or area...',
-                              prefixIcon: Icon(Icons.search, color: AppColors.primary),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            onSubmitted: (query) async {
-                              final results = await _locationService.searchAddress(query);
-                              if (results.isNotEmpty) {
-                                final first = results.first;
-                                tempLat = first['lat'];
-                                tempLng = first['lon'];
-                                tempAddress = first['display_name'];
-                                setModalState(() {});
-                                mapController.move(LatLng(tempLat, tempLng), 16.0);
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        right: 16,
-                        top: 12,
-                        child: FloatingActionButton.small(
-                          heroTag: 'map_picker_gps_btn',
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppColors.primary,
-                          elevation: 4,
-                          onPressed: isDetectingGps
-                              ? null
-                              : () async {
-                                  setModalState(() => isDetectingGps = true);
-                                  try {
-                                    final ok = await _locationService
-                                        .promptLocationPermissionDialog(context);
-                                    if (!ok) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                'Location permission denied or GPS is turned off.'),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                      }
-                                      return;
-                                    }
+        setState(() {
+          _currentAddress = tempAddress;
+          _currentLat = tempLat;
+          _currentLng = tempLng;
+          _selectedAddressId = 'current';
 
-                                    // Real GPS fix only — anti-spoof and
-                                    // anti-stale checks live in LocationService.
-                                    final pos = await _locationService.getCurrentPosition();
-                                    final addr = await _locationService.reverseGeocode(
-                                        pos.latitude, pos.longitude);
+          final idx = _savedAddresses.indexWhere((a) => a['id'] == 'current');
+          if (idx != -1) {
+            _savedAddresses[idx]['address'] = tempAddress;
+            _savedAddresses[idx]['lat'] = tempLat;
+            _savedAddresses[idx]['lng'] = tempLng;
+          } else {
+            _savedAddresses.add({
+              'id': 'current',
+              'title': 'Current Location',
+              'address': tempAddress,
+              'icon': Icons.my_location_rounded,
+              'lat': tempLat,
+              'lng': tempLng,
+            });
+          }
+        });
 
-                                    if (!context.mounted) return;
-
-                                    tempLat = pos.latitude;
-                                    tempLng = pos.longitude;
-                                    setModalState(() {
-                                      tempAddress = addr.fullAddress;
-                                    });
-
-                                    mapController.move(
-                                        LatLng(pos.latitude, pos.longitude), 16.0);
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('GPS Error: $e'),
-                                          backgroundColor: Colors.red.shade700,
-                                        ),
-                                      );
-                                    }
-                                  } finally {
-                                    if (context.mounted) {
-                                      setModalState(() => isDetectingGps = false);
-                                    }
-                                  }
-                                },
-                          child: isDetectingGps
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: AppColors.primary,
-                                  ),
-                                )
-                              : const Icon(Icons.my_location),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, -3),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.place_outlined, color: AppColors.primary, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              tempAddress,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          onPressed: () async {
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setString('user_delivery_address', tempAddress);
-                            await prefs.setDouble('user_delivery_lat', tempLat);
-                            await prefs.setDouble('user_delivery_lng', tempLng);
-
-                            setState(() {
-                              _currentAddress = tempAddress;
-                              _currentLat = tempLat;
-                              _currentLng = tempLng;
-                              _selectedAddressId = 'current';
-
-                              final idx = _savedAddresses.indexWhere((a) => a['id'] == 'current');
-                              if (idx != -1) {
-                                _savedAddresses[idx]['address'] = tempAddress;
-                                _savedAddresses[idx]['lat'] = tempLat;
-                                _savedAddresses[idx]['lng'] = tempLng;
-                              } else {
-                                _savedAddresses.add({
-                                  'id': 'current',
-                                  'title': 'Current Location',
-                                  'address': tempAddress,
-                                  'icon': Icons.my_location_rounded,
-                                  'lat': tempLat,
-                                  'lng': tempLng,
-                                });
-                              }
-                            });
-
-                            Navigator.pop(bottomCtx);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Location updated to: $tempAddress'),
-                                  backgroundColor: AppColors.success,
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            }
-                          },
-                          child: const Text(
-                            'Confirm Location',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Location updated to: $tempAddress'),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
             ),
           );
-        },
-      ),
+        }
+      },
     );
   }
 

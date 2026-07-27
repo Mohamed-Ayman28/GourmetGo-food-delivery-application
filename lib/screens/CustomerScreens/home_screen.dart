@@ -15,10 +15,6 @@ import 'package:gourmet_go/widgets/custom_bottom_nav_bar.dart';
 import 'package:gourmet_go/widgets/food_item_card.dart';
 import 'package:gourmet_go/widgets/search_bar.dart';
 import 'package:gourmet_go/widgets/skeleton_card.dart';
-import 'package:gourmet_go/features/order_tracking/presentation/pages/staff_order_manager_screen.dart';
-import 'package:gourmet_go/features/order_tracking/presentation/pages/driver_dashboard_screen.dart';
-import 'package:gourmet_go/features/order_tracking/presentation/pages/customer_tracking_screen.dart';
-import 'package:gourmet_go/screens/AdminScreens/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

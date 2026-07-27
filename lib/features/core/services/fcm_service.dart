@@ -9,7 +9,7 @@ class FCMService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> initialize() async {
-    // 1. Request permission for iOS/Web
+    
     NotificationSettings settings = await _firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
@@ -23,7 +23,6 @@ class FCMService {
       return;
     }
 
-    // 2. Get FCM token
     try {
       String? token = await _firebaseMessaging.getToken();
       if (token != null) {
@@ -33,10 +32,8 @@ class FCMService {
       debugPrint('Error getting FCM token: $e');
     }
 
-    // 3. Listen to token refreshes
     _firebaseMessaging.onTokenRefresh.listen(_saveTokenToDatabase);
 
-    // 4. Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('Received a message while in the foreground!');
       debugPrint('Message data: ${message.data}');
@@ -44,7 +41,7 @@ class FCMService {
       if (message.notification != null) {
         debugPrint(
             'Message also contained a notification: ${message.notification}');
-        // We could show a local notification here using flutter_local_notifications if desired
+       
       }
     });
   }
@@ -54,7 +51,6 @@ class FCMService {
     String? userId = _auth.currentUser?.uid;
     if (userId == null) return;
 
-    // We can save the token in a generic 'users' collection or update it in 'customers' / 'drivers'
     await _firestore.collection('users').doc(userId).set({
       'fcmTokens': FieldValue.arrayUnion([token]),
       'lastUpdatedAt': FieldValue.serverTimestamp(),
@@ -62,10 +58,7 @@ class FCMService {
   }
 }
 
-// Background handler must be a top-level function
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // If you're going to use other Firebase services in the background, such as Firestore,
-  // make sure you call `Firebase.initializeApp()` before using other Firebase services.
   debugPrint("Handling a background message: ${message.messageId}");
 }

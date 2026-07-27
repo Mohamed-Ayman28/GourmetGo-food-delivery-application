@@ -75,6 +75,24 @@ class StaffOrdersCubit extends Cubit<StaffOrdersState> {
     );
   }
 
+  Future<void> deleteOrder(String orderId) async {
+    final result = await orderRepository.deleteOrder(orderId);
+    result.fold(
+      (failure) {
+        if (state is StaffOrdersLoaded) {
+          emit((state as StaffOrdersLoaded).copyWith(actionError: failure));
+        } else {
+          emit(StaffOrdersError(failure));
+        }
+      },
+      (_) {
+        if (state is StaffOrdersLoaded) {
+          emit((state as StaffOrdersLoaded).copyWith(clearActionError: true));
+        }
+      },
+    );
+  }
+
   void clearActionError() {
     if (state is StaffOrdersLoaded) {
       emit((state as StaffOrdersLoaded).copyWith(clearActionError: true));

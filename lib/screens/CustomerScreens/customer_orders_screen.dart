@@ -1,3 +1,4 @@
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -479,15 +480,7 @@ class _OrderCard extends StatelessWidget {
               height: 42,
               child: OutlinedButton.icon(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Reorder coming soon'),
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: AppColors.textPrimary,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  );
+                  CustomSnackBar.show(context, message: 'Reorder coming soon', type: SnackBarType.info);
                 },
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Reorder'),

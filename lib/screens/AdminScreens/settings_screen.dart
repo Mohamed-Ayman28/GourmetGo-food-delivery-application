@@ -1,3 +1,4 @@
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -93,16 +94,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         await FirebaseAuth.instance.signOut();
                         if (!mounted) return;
                         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (Route<dynamic> route) => false);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Logged out successfully'), behavior: SnackBarBehavior.floating),
-                        );
+                        CustomSnackBar.show(context, message: 'Logged out successfully', type: SnackBarType.success);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.error,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       child: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                     ),
@@ -183,9 +181,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             try {
                               await MenuSeeder.clearAndReseedMenu();
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Database seeded successfully!'), backgroundColor: AppColors.success));
+                              CustomSnackBar.show(context, message: 'Database seeded successfully!', type: SnackBarType.success);
                             } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
+                              CustomSnackBar.show(context, message: 'Error: $e', type: SnackBarType.error);
                             } finally {
                               setState(() => _isSeeding = false);
                             }

@@ -1,7 +1,18 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const nodemailer = require("nodemailer");
 admin.initializeApp();
 
+// Configure the SMTP transport using environment config
+// e.g. firebase functions:config:set smtp.user="your-email@gmail.com" smtp.pass="your-password"
+// If not configured, it will fail to send, so fallback or logging is needed.
+const mailTransport = nodemailer.createTransport({
+  service: 'gmail', // Standardizing on gmail for now, can be configured
+  auth: {
+    user: process.env.SMTP_USER || functions.config().smtp?.user || "demo@example.com",
+    pass: process.env.SMTP_PASS || functions.config().smtp?.pass || "password",
+  },
+});
 exports.onOrderStatusChanged = functions.firestore
   .document("orders/{orderId}")
   .onUpdate(async (change, context) => {
@@ -83,3 +94,120 @@ exports.onOrderStatusChanged = functions.firestore
 
     return null;
   });
+
+// --- FORGOT PASSWORD VIA OTP ---
+
+exports.requestPasswordReset = functions.https.onCall(async (data, context) => {
+  const email = data.email;
+  if (!email) {
+    throw new functions.https.HttpsError("invalid-argument", "Email is required.");
+  }
+
+  let userRecord;
+  try {
+    userRecord = await admin.auth().getUserByEmail(email);
+  } catch (error) {
+    // Return success to avoid email enumeration, but do nothing
+    return { success: true, message: "If this email is registered, an OTP will be sent." };
+  }
+
+  // Verify Role in Firestore
+  const userDoc = await admin.firestore().collection("users").doc(userRecord.uid).get();
+  if (!userDoc.exists) {
+    throw new functions.https.HttpsError("permission-denied", "User data not found.");
+  }
+
+  const role = userDoc.data().role?.trim().toLowerCase();
+  if (role !== "customer" && role !== "admin") {
+    throw new functions.https.HttpsError("permission-denied", "This feature is not available for this account type.");
+  }
+
+  // Rate Limiting
+  const resetRef = admin.firestore().collection("password_resets").doc(userRecord.uid);
+  const resetDoc = await resetRef.get();
+  
+  if (resetDoc.exists) {
+    const lastRequested = resetDoc.data().createdAt.toDate();
+    const now = new Date();
+    // 60 seconds cooldown
+    if ((now - lastRequested) < 60000) {
+      throw new functions.https.HttpsError("resource-exhausted", "Please wait before requesting a new OTP.");
+    }
+  }
+
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
+
+  await resetRef.set({
+    otp: otp,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+  });
+
+  // Send Email
+  const mailOptions = {
+    from: '"GourmetGo Admin" <noreply@gourmetgo.com>',
+    to: email,
+    subject: "Your Password Reset OTP",
+    text: `Your OTP for password reset is: ${otp}. It will expire in 10 minutes.`,
+    html: `<p>Your OTP for password reset is: <strong>${otp}</strong>.</p><p>It will expire in 10 minutes.</p>`,
+  };
+
+  try {
+    await mailTransport.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending email:", error);
+    // Even if email fails (e.g. SMTP not configured), we shouldn't crash the frontend immediately,
+    // but maybe throw an error for the developer.
+    throw new functions.https.HttpsError("internal", "Failed to send email. Please check SMTP config.");
+  }
+
+  return { success: true, message: "OTP sent successfully." };
+});
+
+exports.verifyOTPAndResetPassword = functions.https.onCall(async (data, context) => {
+  const { email, otp, newPassword } = data;
+  if (!email || !otp || !newPassword) {
+    throw new functions.https.HttpsError("invalid-argument", "Missing required fields.");
+  }
+  
+  if (newPassword.length < 6) {
+     throw new functions.https.HttpsError("invalid-argument", "Password must be at least 6 characters.");
+  }
+
+  let userRecord;
+  try {
+    userRecord = await admin.auth().getUserByEmail(email);
+  } catch (error) {
+    throw new functions.https.HttpsError("not-found", "User not found.");
+  }
+
+  const resetRef = admin.firestore().collection("password_resets").doc(userRecord.uid);
+  const resetDoc = await resetRef.get();
+
+  if (!resetDoc.exists) {
+    throw new functions.https.HttpsError("failed-precondition", "No pending password reset found or it has expired.");
+  }
+
+  const resetData = resetDoc.data();
+  if (resetData.otp !== otp) {
+    throw new functions.https.HttpsError("invalid-argument", "Invalid OTP.");
+  }
+
+  const now = new Date();
+  if (now > resetData.expiresAt.toDate()) {
+    await resetRef.delete();
+    throw new functions.https.HttpsError("failed-precondition", "OTP has expired. Please request a new one.");
+  }
+
+  // Update password
+  await admin.auth().updateUser(userRecord.uid, {
+    password: newPassword,
+  });
+
+  // Invalidate OTP
+  await resetRef.delete();
+
+  return { success: true, message: "Password updated successfully." };
+});

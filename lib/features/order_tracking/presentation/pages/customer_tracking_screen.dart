@@ -499,61 +499,7 @@ class _TalabatTrackingViewState extends State<_TalabatTrackingView>
                 ),
               ),
 
-              // Driver Photo Avatar + Rating Overlay Badge
-              Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.deepOrange, width: 2),
-                      image: DecorationImage(
-                        image: (order.driverPhotoUrl != null &&
-                                order.driverPhotoUrl!.isNotEmpty)
-                            ? NetworkImage(order.driverPhotoUrl!)
-                            : const NetworkImage(
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(30),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.star, color: Colors.amber, size: 12),
-                          SizedBox(width: 2),
-                          Text(
-                            '4.8',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+
             ],
           ),
 
@@ -699,15 +645,7 @@ class _TalabatTrackingViewState extends State<_TalabatTrackingView>
               // Rider Info Row
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundImage: (order.driverPhotoUrl != null &&
-                            order.driverPhotoUrl!.isNotEmpty)
-                        ? NetworkImage(order.driverPhotoUrl!)
-                        : const NetworkImage(
-                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'),
-                  ),
-                  const SizedBox(width: 12),
+
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

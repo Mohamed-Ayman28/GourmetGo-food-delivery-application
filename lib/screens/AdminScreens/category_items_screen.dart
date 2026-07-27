@@ -1,3 +1,4 @@
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -287,7 +288,7 @@ class _CategoryItemsScreenState extends State<CategoryItemsScreen> {
               if (!mounted) return;
               Navigator.pop(ctx);
             } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+              CustomSnackBar.show(context, message: 'Error: $e', type: SnackBarType.error);
             } finally {
               setState(() => isLoading = false);
             }

@@ -1,8 +1,14 @@
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'CustomerScreens/home_screen.dart';
+import 'AdminScreens/dashboard_screen.dart';
+import '../features/order_tracking/presentation/pages/staff_order_manager_screen.dart';
+import '../features/order_tracking/presentation/pages/driver_dashboard_screen.dart';
 import '../widgets/auth_widget.dart';
+import '../services/social_auth_service.dart';
+import 'email_verification/email_verification_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -16,6 +22,8 @@ class _SignupScreenState extends State<SignupScreen>
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final SocialAuthService _socialAuthService = SocialAuthService();
+  bool _isLoading = false;
 
   bool _agreeToTerms = false;
   String? _emailError;
@@ -52,6 +60,77 @@ class _SignupScreenState extends State<SignupScreen>
     super.dispose();
   }
 
+  void _navigateForRole(String role, String uid) {
+    if (!mounted) return;
+    if (role == 'admin') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+      );
+    } else if (role == 'staff') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const StaffOrderManagerScreen()),
+      );
+    } else if (role == 'driver') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => DriverDashboardScreen(driverId: uid)),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    }
+  }
+
+  Future<void> _handleSocialSignUp(
+      Future<SocialAuthResult> Function() authMethod) async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await authMethod();
+      if (!mounted) return;
+
+      switch (result.status) {
+        case SocialAuthStatus.success:
+          if (result.user != null) {
+            _navigateForRole(result.role ?? 'customer', result.user!.uid);
+          }
+          break;
+
+        case SocialAuthStatus.accountAlreadyExists:
+          CustomSnackBar.show(context, message: result.message ?? 'Account already registered. Logging you in...', type: SnackBarType.success);
+          if (result.user != null) {
+            _navigateForRole(result.role ?? 'customer', result.user!.uid);
+          }
+          break;
+
+        case SocialAuthStatus.cancelled:
+          break;
+
+        case SocialAuthStatus.accountNotFound:
+        case SocialAuthStatus.error:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message ?? 'Sign-up failed.'),
+            ),
+          );
+          break;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   /// Validates email and password, returning true when both are valid.
   bool _validate() {
     String? emailErr;
@@ -81,32 +160,59 @@ class _SignupScreenState extends State<SignupScreen>
 
   Future<void> _onSignUp() async {
     if (_validate()) {
+      setState(() => _isLoading = true);
       try {
-        final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        final cred =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
         if (cred.user != null) {
-          await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
+          // Store user with emailVerified: false
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(cred.user!.uid)
+              .set({
             'name': _nameController.text.trim(),
             'email': _emailController.text.trim(),
-            'role': 'customer', // Four types: Customer, Admin, Driver, Staff. Defaulting to Customer here.
+            'role': 'customer',
+            'emailVerified': false,
             'createdAt': FieldValue.serverTimestamp(),
           });
+
+          // Send verification email via Firebase Auth (free, no Cloud Functions needed)
+          try {
+            await cred.user!.sendEmailVerification();
+          } catch (_) {
+            // Even if email send fails, proceed to verification screen
+            // where the user can retry with the resend button
+          }
+
           if (!mounted) return;
+
+          // Navigate to email verification screen
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            MaterialPageRoute(
+              builder: (_) => EmailVerificationScreen(
+                email: _emailController.text.trim(),
+                uid: cred.user!.uid,
+              ),
+            ),
           );
         }
       } on FirebaseAuthException catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.message ?? 'Sign up failed')),
         );
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -138,23 +244,36 @@ class _SignupScreenState extends State<SignupScreen>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  RichText(
-                    text: const TextSpan(
+                  Text.rich(
+                    TextSpan(
                       text: 'Start your ',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF888888)),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF777777),
+                      ),
                       children: [
-                        TextSpan(
+                        const TextSpan(
                           text: 'culinary journey',
                           style: TextStyle(
                             fontStyle: FontStyle.italic,
                             color: Color(0xFF555555),
                           ),
                         ),
-                        TextSpan(text: ' with us today.'),
+                        const TextSpan(text: ' with us today.'),
                       ],
                     ),
                   ),
                   const SizedBox(height: 32),
+
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFFF5722),
+                        ),
+                      ),
+                    ),
 
                   // Full Name field
                   const AuthFieldLabel('Full Name'),
@@ -207,7 +326,13 @@ class _SignupScreenState extends State<SignupScreen>
                           label: 'Google',
                           icon: Icons.g_mobiledata,
                           iconColor: const Color(0xFFDB4437),
-                          onTap: () {},
+                          onTap: _isLoading
+                              ? null
+                              : () => _handleSocialSignUp(
+                                    () => _socialAuthService.signInWithGoogle(
+                                      isSignUp: true,
+                                    ),
+                                  ),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -216,7 +341,13 @@ class _SignupScreenState extends State<SignupScreen>
                           label: 'Apple',
                           icon: Icons.apple,
                           iconColor: Colors.black,
-                          onTap: () {},
+                          onTap: _isLoading
+                              ? null
+                              : () => _handleSocialSignUp(
+                                    () => _socialAuthService.signInWithApple(
+                                      isSignUp: true,
+                                    ),
+                                  ),
                         ),
                       ),
                     ],

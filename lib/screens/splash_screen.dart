@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
+import 'email_verification/email_verification_screen.dart';
 import 'CustomerScreens/home_screen.dart';
 import 'AdminScreens/dashboard_screen.dart';
 import '../features/order_tracking/presentation/pages/staff_order_manager_screen.dart';
@@ -41,13 +42,37 @@ class _SplashScreenState extends State<SplashScreen>
 
       if (user != null) {
         try {
-          final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+          // Reload to get latest email verification status
+          await user.reload();
+          final refreshedUser = FirebaseAuth.instance.currentUser;
+
+          final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+          final doc = await docRef.get();
           String role = 'customer';
           if (doc.exists) {
             role = doc.data()?['role'] ?? 'customer';
           }
 
-          if (role == 'admin') {
+          if (user.email != null && user.email!.toLowerCase() == 'admin@gmail.com') {
+            role = 'admin';
+            if (!doc.exists || doc.data()?['role'] != 'admin') {
+              await docRef.set({
+                'name': 'Admin',
+                'email': user.email,
+                'role': 'admin',
+                'emailVerified': true,
+                'createdAt': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
+            }
+          }
+
+          // Guard: redirect unverified email/password users (admin@gmail.com is auto-verified)
+          if (refreshedUser != null && !refreshedUser.emailVerified && user.email?.toLowerCase() != 'admin@gmail.com') {
+            nextScreen = EmailVerificationScreen(
+              email: user.email ?? '',
+              uid: user.uid,
+            );
+          } else if (role == 'admin') {
             nextScreen = const AdminDashboardScreen();
           } else if (role == 'staff') {
             nextScreen = const StaffOrderManagerScreen();

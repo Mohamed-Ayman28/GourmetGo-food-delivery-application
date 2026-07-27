@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import 'features/order_tracking/core/services/location_service.dart';
 import 'features/order_tracking/core/services/routing_service.dart';
+import 'features/order_tracking/core/services/osrm_service.dart';
 import 'features/order_tracking/data/datasources/order_remote_datasource.dart';
 import 'features/order_tracking/data/datasources/tracking_remote_datasource.dart';
 import 'features/order_tracking/data/repositories/order_repository_impl.dart';
@@ -25,7 +26,7 @@ Future<void> init() async {
   sl.registerFactory(() => CustomerTrackingCubit(
         orderRepository: sl(),
         trackingRepository: sl(),
-        routingService: sl(),
+        osrmService: sl(),
       ));
   sl.registerFactory(() => DriverOrdersCubit(
         orderRepository: sl(),
@@ -51,6 +52,7 @@ Future<void> init() async {
   // Core Services
   sl.registerLazySingleton(() => LocationService());
   sl.registerLazySingleton(() => RoutingService(dio: sl()));
+  sl.registerLazySingleton(() => OSRMService());
 
   // External
   sl.registerLazySingleton(() => FirebaseFirestore.instance);

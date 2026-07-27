@@ -34,8 +34,20 @@ class OrdersTab extends StatelessWidget {
                 title: Text('Order #${doc.id.substring(0, 8).toUpperCase()}'),
                 subtitle: Text('$dateStr\nTotal: \$${data['total']} - ${data['status']?.toString().toUpperCase()}'),
                 isThreeLine: true,
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showOrderDetails(context, doc.id, data),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.info_outline, color: AppColors.info),
+                      onPressed: () => _showOrderDetails(context, doc.id, data),
+                    ),
+                    if (data['status']?.toString().toLowerCase() == 'delivered')
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                        onPressed: () => _confirmDeleteOrder(context, doc.id, data),
+                      ),
+                  ],
+                ),
               ),
             );
           },
@@ -81,7 +93,7 @@ class OrdersTab extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('${item['quantity']}x ${item['name']}'),
-                    Text('\$${(item['price'] * item['quantity']).toStringAsFixed(2)}'),
+                    Text('\$${(((item['price'] as num?) ?? 0.0) * ((item['quantity'] as num?) ?? 1)).toStringAsFixed(2)}'),
                   ],
                 ),
               )).toList(),
@@ -98,6 +110,50 @@ class OrdersTab extends StatelessWidget {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteOrder(BuildContext context, String orderId, Map<String, dynamic> data) {
+    if (data['status']?.toString().toLowerCase() != 'delivered') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only delivered orders can be deleted.')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Order'),
+        content: const Text('Are you sure you want to permanently delete this delivered order? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                await FirebaseFirestore.instance.collection('orders').doc(orderId).delete();
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Order deleted successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );

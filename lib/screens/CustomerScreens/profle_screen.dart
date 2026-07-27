@@ -1,3 +1,4 @@
+import 'package:gourmet_go/widgets/custom_snackbar.dart';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -254,13 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to pick image: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        CustomSnackBar.show(context, message: 'Failed to pick image: ${e.toString()}', type: SnackBarType.error);
       }
     }
   }
@@ -281,8 +276,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 const Icon(Icons.credit_card_rounded, color: AppColors.primary),
                 const SizedBox(width: 10),
-                const Text('Payment Methods',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -347,9 +340,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               subtitle: const Text('+1 800-468-7638'),
               onTap: () {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Calling Support...')),
-                );
+                CustomSnackBar.show(context, message: 'Calling Support...', type: SnackBarType.info);
               },
             ),
             const Divider(),
@@ -389,8 +380,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     const Icon(Icons.settings_outlined, color: AppColors.primary),
                     const SizedBox(width: 10),
-                    const Text('App Settings',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close),

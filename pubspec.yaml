@@ -43,6 +43,8 @@ dependencies:
   dartz: ^0.10.1
   firebase_core: ^4.12.1
   firebase_auth: ^6.5.6
+  google_sign_in: ^6.2.2
+  sign_in_with_apple: ^6.1.4
   cloud_firestore: ^6.7.1
   firebase_storage: ^13.4.5
   firebase_messaging: ^16.4.3
@@ -70,6 +72,7 @@ dependencies:
   animations: ^2.0.11
   url_launcher: ^6.3.2
   bloc: ^9.2.1
+  cloud_functions: ^6.3.5
 
 dev_dependencies:
   flutter_test:
@@ -81,6 +84,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
