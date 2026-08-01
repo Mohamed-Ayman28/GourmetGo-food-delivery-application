@@ -66,8 +66,10 @@ class _SplashScreenState extends State<SplashScreen>
             }
           }
 
-          // Guard: redirect unverified email/password users (admin@gmail.com is auto-verified)
-          if (refreshedUser != null && !refreshedUser.emailVerified && user.email?.toLowerCase() != 'admin@gmail.com') {
+          // Guard: only require email verification for customers, not admin/staff/driver
+          if (role == 'customer' &&
+              refreshedUser != null &&
+              !refreshedUser.emailVerified) {
             nextScreen = EmailVerificationScreen(
               email: user.email ?? '',
               uid: user.uid,

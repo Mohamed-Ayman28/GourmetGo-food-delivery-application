@@ -23,7 +23,8 @@ class OSRMService {
   Future<OSRMRoute?> getRoute(LatLng start, LatLng destination) async {
     for (int attempt = 0; attempt <= _maxRetries; attempt++) {
       try {
-        final url = '$_baseUrl/${start.longitude},${start.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=polyline';
+        // Use geometries=geojson to avoid Dart 64-bit int polyline decoding bugs
+        final url = '$_baseUrl/${start.longitude},${start.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson';
         final response = await http
             .get(Uri.parse(url), headers: {'User-Agent': 'GourmetGoApp/1.0'})
             .timeout(_timeout);
@@ -32,11 +33,15 @@ class OSRMService {
           final data = jsonDecode(response.body);
           if (data['code'] == 'Ok' && data['routes'] != null && data['routes'].isNotEmpty) {
             final route = data['routes'][0];
-            final geometry = route['geometry'] as String;
+            final geometry = route['geometry'];
+            final coordinates = geometry['coordinates'] as List<dynamic>;
             final distance = (route['distance'] as num).toDouble();
             final duration = (route['duration'] as num).toDouble();
 
-            final decodedPoints = _decodePolyline(geometry);
+            // GeoJSON coordinates are in [longitude, latitude] order
+            final decodedPoints = coordinates.map((c) {
+              return LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble());
+            }).toList();
 
             return OSRMRoute(
               polylinePoints: decodedPoints,
@@ -57,36 +62,5 @@ class OSRMService {
       }
     }
     return null;
-  }
-
-  List<LatLng> _decodePolyline(String encoded) {
-    List<LatLng> poly = [];
-    int index = 0, len = encoded.length;
-    int lat = 0, lng = 0;
-
-    while (index < len) {
-      int b, shift = 0, result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-
-      final p = LatLng((lat / 1E5).toDouble(), (lng / 1E5).toDouble());
-      poly.add(p);
-    }
-    return poly;
   }
 }

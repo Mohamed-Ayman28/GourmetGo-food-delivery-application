@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'injection_container.dart' as di;
+import 'helper/cart_manager.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'features/core/services/fcm_service.dart';
@@ -20,7 +21,11 @@ void main() async {
   // Initialize FCM
   final fcmService = FCMService();
   await fcmService.initialize();
-  
+
+  // Restore persisted cart from local storage so the badge and cart contents
+  // are immediately correct on the first frame — no flicker or empty state.
+  await CartManager().loadCart();
+
   runApp(const GourmetGoApp());
 }
 

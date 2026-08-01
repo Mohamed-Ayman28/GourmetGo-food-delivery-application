@@ -16,6 +16,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gourmet_go/features/order_tracking/core/services/location_service.dart';
 import 'delivery_addresses_screen.dart';
+import 'card_payment_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -213,22 +214,28 @@ class _CartScreenState extends State<CartScreen> {
   double get _tax => _subtotal * 0.08;
   double get _grandTotal => _subtotal + _deliveryFee + _serviceFee + _tax;
 
-  void _onPlaceOrder() {
+  Future<void> _onPlaceOrder() async {
     if (_cartManager.items.isEmpty) {
       CustomSnackBar.show(context, message: 'Your cart is empty! Add some delicious food first.', type: SnackBarType.info);
       return;
     }
 
-    showModalBottomSheet(
+    // await the sheet — the Future completes only AFTER the dismiss animation
+    // has fully finished, so any navigation that follows is always safe.
+    // The button inside pops with a bool result:
+    //   true  → Card payment (navigate to CardPaymentScreen next)
+    //   false → Cash / Apple Pay (place order directly)
+    //   null  → Sheet was dismissed without action (do nothing)
+    final bool? useCard = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
+        builder: (modalCtx, setModalState) {
           return Padding(
             padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
             child: Container(
-              height: MediaQuery.of(context).size.height * 0.85,
+              height: MediaQuery.of(modalCtx).size.height * 0.85,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -261,6 +268,7 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
+                        // Pop with null → caller does nothing
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
@@ -291,8 +299,7 @@ class _CartScreenState extends State<CartScreen> {
                                 style: TextButton.styleFrom(foregroundColor: AppColors.primary),
                                 onPressed: () async {
                                   Navigator.pop(ctx);
-                                  await Navigator.push(
-                                    context,
+                                  await Navigator.of(ctx).push(
                                     MaterialPageRoute(
                                       builder: (_) => const DeliveryAddressesScreen(),
                                     ),
@@ -496,23 +503,42 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   ),
 
-                  // Submit Button
+                  // Submit Button — pops with a bool result, NO async work here.
                   SizedBox(
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _submitOrderToFirestore();
-                      },
+                      // Simple synchronous pop with a result value.
+                      // The caller (await showModalBottomSheet) receives this
+                      // result AFTER the dismiss animation finishes — safe.
+                      onPressed: () => Navigator.pop(
+                        ctx,
+                        _selectedPayment == 'Card', // true = card, false = direct
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: Text(
-                        'Confirm & Place Order • \$${_grandTotal.toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _selectedPayment == 'Card'
+                                ? Icons.credit_card_rounded
+                                : Icons.check_circle_rounded,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _selectedPayment == 'Card'
+                                ? 'Continue to Card Payment'
+                                : 'Confirm & Place Order • \$${_grandTotal.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -523,7 +549,31 @@ class _CartScreenState extends State<CartScreen> {
         },
       ),
     );
+
+    // ── Post-modal navigation ─────────────────────────────────────────────────
+    // At this point the sheet is guaranteed to be fully dismissed.
+    // The widget might have been unmounted if the user navigated away.
+    if (!mounted) return;
+
+    if (useCard == true) {
+      // Navigate to the card payment screen using a clean, live context.
+      final total = _grandTotal;
+      final paid = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CardPaymentScreen(totalAmount: total),
+        ),
+      );
+      if (paid == true && mounted) {
+        _submitOrderToFirestore();
+      }
+    } else if (useCard == false) {
+      // Cash / Apple Pay — place order directly.
+      _submitOrderToFirestore();
+    }
+    // useCard == null → sheet was swiped/closed without action → do nothing.
   }
+
 
   Widget _summaryRow(String label, String value, {bool isBold = false}) {
     return Padding(

@@ -273,7 +273,7 @@ class LocationService {
     try {
       Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
+          accuracy: LocationAccuracy.low, // Changed from high to prevent 10s hang on load
         ),
       ).then((position) {
         if (completer.isCompleted) return;

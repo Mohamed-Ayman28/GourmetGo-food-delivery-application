@@ -19,6 +19,39 @@ class FoodItem {
     this.ingredients = const [],
   });
 
+  // ── Serialization (used by CartManager for local persistence) ────────────
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'img': img,
+        'name': name,
+        'description': description,
+        'price': price,
+        'rate': rate,
+        'country': country,
+        'ingredients': ingredients,
+      };
+
+  /// Reconstructs a [FoodItem] from a persisted JSON map.
+  factory FoodItem.fromPersistedJson(Map<String, dynamic> json) {
+    final ingredientsList = <String>[];
+    if (json['ingredients'] is List) {
+      for (final i in json['ingredients'] as List) {
+        ingredientsList.add(i.toString());
+      }
+    }
+    return FoodItem(
+      id: json['id'] as String? ?? '',
+      img: json['img'] as String? ?? '',
+      name: json['name'] as String? ?? 'Food Item',
+      description: json['description'] as String? ?? '',
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      rate: (json['rate'] as num?)?.toDouble() ?? 0.0,
+      country: json['country'] as String? ?? '',
+      ingredients: ingredientsList,
+    );
+  }
+
   /// Parse from the old API format (free-food-menus-api).
   factory FoodItem.fromJson(Map<String, dynamic> json) {
     final name = json['name']?.toString() ?? 'Food Item';

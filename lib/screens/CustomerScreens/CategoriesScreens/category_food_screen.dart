@@ -3,9 +3,9 @@ import 'package:gourmet_go/helper/api_helper.dart';
 import 'package:gourmet_go/models/food_item.dart';
 import 'package:gourmet_go/widgets/food_item_card.dart';
 import 'package:gourmet_go/widgets/skeleton_card.dart';
-import 'package:gourmet_go/screens/CustomerScreens/cart_screen.dart';
-import 'package:gourmet_go/helper/cart_manager.dart';
 import 'package:gourmet_go/consts/appColors.dart';
+import 'package:gourmet_go/helper/cart_manager.dart';
+import 'package:gourmet_go/widgets/cart_icon_badge.dart';
 
 /// Generic category screen. Pass [title] and [endpoint] (e.g. '/burgers').
 class CategoryFoodScreen extends StatefulWidget {
@@ -92,15 +92,7 @@ class _CategoryFoodScreenState extends State<CategoryFoodScreen> {
         ),
         centerTitle: false,
         actions: [
-          IconButton(
-            icon: Icon(Icons.shopping_cart_outlined, color: colors.primary),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CartScreen()),
-              );
-            },
-          ),
+          CartIconBadge(color: colors.primary),
         ],
       ),
       body: _buildBody(colors),

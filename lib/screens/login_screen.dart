@@ -10,6 +10,7 @@ import '../features/order_tracking/presentation/pages/staff_order_manager_screen
 import '../features/order_tracking/presentation/pages/driver_dashboard_screen.dart';
 import '../services/social_auth_service.dart';
 import 'forgot_password/forgot_password_screen.dart';
+import 'email_verification/email_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -252,6 +253,9 @@ class _LoginScreenState extends State<LoginScreen>
                               password: password,
                             );
                             if (cred.user != null) {
+                              await cred.user!.reload();
+                              final refreshedUser = FirebaseAuth.instance.currentUser;
+
                               final docRef = FirebaseFirestore.instance
                                   .collection('users')
                                   .doc(cred.user!.uid);
@@ -273,7 +277,24 @@ class _LoginScreenState extends State<LoginScreen>
                                 }, SetOptions(merge: true));
                               }
 
-                              _navigateForRole(role, cred.user!.uid);
+                              if (!mounted) return;
+
+                              // Only customers must verify their email before accessing the app
+                              if (role == 'customer' &&
+                                  refreshedUser != null &&
+                                  !refreshedUser.emailVerified) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EmailVerificationScreen(
+                                      email: cred.user!.email ?? '',
+                                      uid: cred.user!.uid,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                _navigateForRole(role, cred.user!.uid);
+                              }
                             }
                           } on FirebaseAuthException catch (e) {
                             if (!mounted) return;

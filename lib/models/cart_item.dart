@@ -37,4 +37,30 @@ class CartItem {
     if (selectedExtras.isEmpty) return "Standard";
     return selectedExtras.map((e) => e.name).join(", ");
   }
+
+  // ── Serialization (used by CartManager for local persistence) ────────────
+
+  Map<String, dynamic> toJson() => {
+        'foodItem': foodItem.toJson(),
+        'selectedExtras': selectedExtras.map((e) => e.toJson()).toList(),
+        'category': category,
+        'quantity': quantity,
+      };
+
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    final extrasJson = json['selectedExtras'];
+    final extras = extrasJson is List
+        ? extrasJson
+            .map((e) => ExtraItem.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList()
+        : <ExtraItem>[];
+
+    return CartItem(
+      foodItem: FoodItem.fromPersistedJson(
+          Map<String, dynamic>.from(json['foodItem'] as Map)),
+      selectedExtras: extras,
+      category: json['category'] as String? ?? '',
+      quantity: json['quantity'] as int? ?? 1,
+    );
+  }
 }
